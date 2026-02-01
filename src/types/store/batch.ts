@@ -1,11 +1,11 @@
 ﻿import type {BaseEntity, EntityConfig, ExtractEntity} from "../entity";
-import type {RelationConfig} from "../relation";
-import type {BatchResults, EntityOperationOptions} from "./operation.ts";
+import type {RelationConfig} from "../relation.ts";
+import type {BatchResults, EntityOperationOptions} from "./common.ts";
 
 /**
  * Main entity store interface.
  */
-export interface BatchActions<
+export interface BatchActionsSlice<
   TEntities extends Record<string, EntityConfig<any, any>>,
   TRelations extends Record<string, RelationConfig<any, any, any>>
 > {

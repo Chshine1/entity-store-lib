@@ -1,4 +1,4 @@
-﻿import type {EntityConfig, ExtractEntity} from "./entity";
+﻿import type {EntityConfig, ExtractEntity} from "./entity.ts";
 
 /**
  * Configuration for a relation between entities.
@@ -15,13 +15,6 @@ export interface RelationConfig<
   sourceType: TSourceName;
   targetType: TTargetName;
 }
-
-/**
- * Extracts all relation names from a relations config.
- */
-export type RelationNames<
-  TRelations extends Record<string, RelationConfig<any, any, any>>
-> = keyof TRelations & string;
 
 /**
  * Resolves a relation to its source and target entity types.

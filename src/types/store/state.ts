@@ -1,11 +1,11 @@
 ﻿import type {EntityConfig, ExtractEntity} from "../entity.ts";
 import type {RelationConfig} from "../relation.ts";
-import type {EntityOperationOptions} from "./operation.ts";
+import type {EntityOperationOptions} from "./common.ts";
 
 /**
  * State structure for the entity store.
  */
-export interface EntityStoreState<
+export interface EntityStoreStateSlice<
   TEntities extends Record<string, EntityConfig<any, any>>,
   TRelations extends Record<string, RelationConfig<any, any, any>>
 > {
@@ -17,7 +17,7 @@ export interface EntityStoreState<
   };
 }
 
-export interface StateActions<
+export interface StateActionsSlice<
   TEntities extends Record<string, EntityConfig<any, any>>,
   TRelations extends Record<string, RelationConfig<any, any, any>>
 > {
@@ -29,6 +29,6 @@ export interface StateActions<
   ) => boolean;
   
   clear: () => void;
-  snapshot: () => EntityStoreState<TEntities, TRelations>;
-  restore: (state: EntityStoreState<TEntities, TRelations>) => void;
+  snapshot: () => EntityStoreStateSlice<TEntities, TRelations>;
+  restore: (state: EntityStoreStateSlice<TEntities, TRelations>) => void;
 }

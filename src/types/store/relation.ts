@@ -1,7 +1,7 @@
 ﻿import type {EntityConfig} from "../entity.ts";
 import type {RelationConfig, ResolvedRelation} from "../relation.ts";
 
-export interface RelationActions<
+export interface RelationActionsSlice<
   TEntities extends Record<string, EntityConfig<any, any>>,
   TRelations extends Record<string, RelationConfig<any, any, any>>
 > {

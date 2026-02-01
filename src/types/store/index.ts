@@ -1,22 +1,22 @@
 ﻿import type {EntityConfig} from "../entity.ts";
 import type {RelationConfig} from "../relation.ts";
 
-import type {EntityStoreState, StateActions} from "./state.ts";
-import type {EntityActions} from "./entity.ts";
-import type {RelationActions} from "./relation.ts";
-import type {BatchActions} from "./batch.ts";
+import type {EntityStoreStateSlice, StateActionsSlice} from "./state.ts";
+import type {EntityActionsSlice} from "./entity.ts";
+import type {RelationActionsSlice} from "./relation.ts";
+import type {BatchActionsSlice} from "./batch.ts";
 
-export * from "./batch";
-export * from "./entity";
-export * from "./operation";
-export * from "./relation";
-export * from "./state";
+export * from "./batch.ts";
+export * from "./entity.ts";
+export * from "./common.ts";
+export * from "./relation.ts";
+export * from "./state.ts";
 
 export type EntityStore<
   TEntities extends Record<string, EntityConfig<any, any>>,
   TRelations extends Record<string, RelationConfig<any, any, any>>
-> = EntityStoreState<TEntities, TRelations>
-  & StateActions<TEntities, TRelations>
-  & EntityActions<TEntities, TRelations>
-  & RelationActions<TEntities, TRelations>
-  & BatchActions<TEntities, TRelations>
+> = EntityStoreStateSlice<TEntities, TRelations>
+  & StateActionsSlice<TEntities, TRelations>
+  & EntityActionsSlice<TEntities, TRelations>
+  & RelationActionsSlice<TEntities, TRelations>
+  & BatchActionsSlice<TEntities, TRelations>

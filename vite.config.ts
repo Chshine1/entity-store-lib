@@ -10,13 +10,12 @@ export default defineConfig({
       fileName: (format) => `index.${format}.js`,
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'zustand', 'immer'],
+      external: ['react', 'react-dom', 'zustand'],
       output: {
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
           zustand: 'zustand',
-          immer: 'immer',
         },
       },
     },

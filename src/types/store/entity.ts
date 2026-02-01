@@ -1,8 +1,8 @@
 ﻿import type {BaseEntity, EntityConfig, ExtractEntity} from "../entity.ts";
 import type {RelationConfig} from "../relation.ts";
-import type {EntityOperationOptions} from "./operation.ts";
+import type {EntityOperationOptions} from "./common.ts";
 
-export interface EntityActions<
+export interface EntityActionsSlice<
   TEntities extends Record<string, EntityConfig<any, any>>,
   TRelations extends Record<string, RelationConfig<any, any, any>>
 > {
