@@ -1,6 +1,7 @@
 import type {EntitiesRecord, ExtractEntity} from "../entity.ts";
 import type {EntityOperationOptions} from "./common.ts";
 import type {RelationsRecord} from "../relation.ts";
+import {IntentBuilder} from "../intent";
 
 export interface EntityStoreStateSlice<
   TEntities extends EntitiesRecord,
@@ -27,4 +28,9 @@ export interface StateActionsSlice<
   clear: () => void;
   snapshot: () => EntityStoreStateSlice<TEntities, TRelations>;
   restore: (state: EntityStoreStateSlice<TEntities, TRelations>) => void;
+  
+  intentBuilder: <
+    TTag extends string,
+    KEntity extends keyof TEntities
+  >(tag: TTag) => IntentBuilder<TEntities, TRelations, {}, TTag, KEntity, KEntity>;
 }

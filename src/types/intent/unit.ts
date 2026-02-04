@@ -1,21 +1,41 @@
-import type {IntentUnitsRecord} from "./expression.ts";
-import type {IntentBuilderBase} from "./builder.ts";
-import type {EntitiesRecord, ExtractEntity} from "../entity.ts";
+﻿import type {EntitiesRecord} from "../entity.ts";
 import type {RelationsRecord} from "../relation.ts";
+import type {
+  AggregateConfig,
+  IncludeConfig,
+  QueryCondition,
+  Operation,
+  SortCondition
+} from "./common.ts";
 
-export abstract class Intent<
+export interface IntentUnit<
   TEntities extends EntitiesRecord,
   TRelations extends RelationsRecord,
-  TUnits extends IntentUnitsRecord
+  TResult
 > {
-  protected readonly units: TUnits;
+  entityKey: keyof TEntities;
   
-  protected constructor(units: TUnits) {
-    this.units = units;
-  }
+  where?: QueryCondition[];
   
-  abstract attach<
-    TTag extends string,
-    KEntity extends keyof TEntities
-  >(tag: TTag): IntentBuilderBase<TEntities, TRelations, TUnits, TTag, KEntity, ExtractEntity<TEntities, KEntity>>;
+  orderBy?: SortCondition[];
+  
+  skip?: number;
+  take?: number;
+  
+  selector?: {
+    fields?: string[];
+    transform?: (data: any) => TResult;
+  };
+  
+  includes?: Map<string, IncludeConfig<TEntities, TRelations>>;
+  
+  aggregation?: AggregateConfig<TResult>;
+  
+  chain?: {
+    previous?: IntentUnit<TEntities, TRelations, any>;
+    operation: Operation;
+    data: any;
+  };
 }
+
+export type IntentUnitsRecord = Record<string, IntentUnit<any, any, any>>;
