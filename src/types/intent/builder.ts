@@ -1,39 +1,40 @@
 ﻿import type {QueryOperator} from "./common.ts";
 import type {EntityConfig} from "../entity.ts";
 import type {RelationConfig, ResolvedRelation, SourcedRelations} from "../relation.ts";
+import type {IntentUnit} from "./unit.ts";
+import type {IntentExpression} from "./expression.ts";
 
 export interface IIntentBuilder<
+  TUnit extends Record<string, IntentExpression<any>>,
+  TTag extends string,
   TEntities extends Record<string, EntityConfig<any, any>>,
   TRelations extends Record<string, RelationConfig<any, any, any>>,
-  T extends keyof TEntities,
+  KEntity extends keyof TEntities,
   R
 > {
-  where: <K extends keyof T>(
+  where: <K extends keyof KEntity>(
     field: K,
     operator: QueryOperator,
-    value: T[K] | T[K][]
-  ) => IIntentBuilder<TEntities, TRelations, T, R>;
+    value: KEntity[K] | KEntity[K][]
+  ) => IIntentBuilder<TUnit, TTag, TEntities, TRelations, KEntity, R>;
   
-  orderBy: <K extends keyof T>(
+  orderBy: <K extends keyof KEntity>(
     field: K,
     direction: 'asc' | 'desc'
-  ) => IIntentBuilder<TEntities, TRelations, T, R>;
+  ) => IIntentBuilder<TUnit, TTag, TEntities, TRelations, KEntity, R>;
   
-  skip: (count: number) => IIntentBuilder<TEntities, TRelations, T, R>;
+  skip: (count: number) => IIntentBuilder<TUnit, TTag, TEntities, TRelations, KEntity, R>;
   
-  take: (count: number) => IIntentBuilder<TEntities, TRelations, T, R>;
+  take: (count: number) => IIntentBuilder<TUnit, TTag, TEntities, TRelations, KEntity, R>;
   
-  select: <U>(selector: (data: R) => U) => IIntentBuilder<TEntities, TRelations, T, U>;
+  select: <U>(selector: (data: R) => U) => IIntentBuilder<TUnit, TTag, TEntities, TRelations, KEntity, U>;
   
-  include: <K extends keyof SourcedRelations<TEntities, TRelations, T>, S>(
+  include: <K extends keyof SourcedRelations<TEntities, TRelations, KEntity>, S>(
     relation: K,
-    config: IIntentBuilder<TEntities, TRelations, ResolvedRelation<TRelations[K], TEntities>["targetType"], S>
-  ) => IIntentBuilder<TEntities, TRelations, T, R & S>;
+    config: IIntentBuilder<TUnit, TTag, TEntities, TRelations, ResolvedRelation<TRelations[K], TEntities>["targetType"], S>
+  ) => IIntentBuilder<TUnit, TTag, TEntities, TRelations, KEntity, R & S>;
   
-  // build: () => IntentUnit<T[], T[]>;
-  //
-  // attach<U extends BaseEntity, V>(
-  //   tag: string,
-  //   intent: IntentUnit<U, V> | ((data: T) => IntentUnit<U, V>)
-  // ): ComposedIntent<T & Record<string, V>>;
+  aggregate: <S>(initial: S, accumulate: (current: S, n: R) => S) => IIntentBuilder<TUnit, TTag, TEntities, TRelations, KEntity, S>;
+  
+  build: () => IntentUnit<KEntity & Record<TTag, IntentExpression<R[]>>, TEntities, TRelations>;
 }
