@@ -30,3 +30,17 @@ export type ResolvedRelation<
     targetEntity: ExtractEntity<TEntities, TTarget>;
   }
   : never;
+
+/*
+ * Extract relations whose source is the given entity.
+ */
+export type SourcedRelations<
+  TEntities extends Record<string, EntityConfig<any, any>>,
+  TRelations extends Record<string, RelationConfig<any, any, any>>,
+  TSource extends keyof TEntities
+> = {
+  [K in keyof TRelations]:
+  ResolvedRelation<TRelations[K], TEntities>["sourceType"] extends TSource ?
+    TRelations[K]
+    : never;
+}

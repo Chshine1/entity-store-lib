@@ -6,7 +6,6 @@ export interface EntityActionsSlice<
   TEntities extends Record<string, EntityConfig<any, any>>,
   TRelations extends Record<string, RelationConfig<any, any, any>>
 > {
-  // Single entity operations
   create: <TEntityName extends keyof TEntities>(
     entityType: TEntityName,
     data: Omit<ExtractEntity<TEntities, TEntityName>, keyof BaseEntity>,
@@ -24,7 +23,6 @@ export interface EntityActionsSlice<
     id: string
   ) => boolean;
   
-  // Query operations
   get: <TEntityName extends keyof TEntities>(
     entityType: TEntityName,
     id: string

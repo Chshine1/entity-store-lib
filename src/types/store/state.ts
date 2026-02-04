@@ -2,9 +2,6 @@
 import type {RelationConfig} from "../relation.ts";
 import type {EntityOperationOptions} from "./common.ts";
 
-/**
- * State structure for the entity store.
- */
 export interface EntityStoreStateSlice<
   TEntities extends Record<string, EntityConfig<any, any>>,
   TRelations extends Record<string, RelationConfig<any, any, any>>
@@ -21,7 +18,6 @@ export interface StateActionsSlice<
   TEntities extends Record<string, EntityConfig<any, any>>,
   TRelations extends Record<string, RelationConfig<any, any, any>>
 > {
-  // State management
   load: <TEntityName extends keyof TEntities>(
     entityType: TEntityName,
     data: ExtractEntity<TEntities, TEntityName>,
