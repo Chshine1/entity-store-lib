@@ -1,10 +1,10 @@
-﻿import type {RelationConfig} from "../relation.ts";
+import type {RelationsRecord} from "../relation.ts";
 
 /**
  * Options for entity creation and loading.
  */
 export interface EntityOperationOptions<
-  TRelations extends Record<string, RelationConfig<any, any, any>>
+  TRelations extends RelationsRecord
 > {
   relationType?: keyof TRelations;
   sourceId?: string;

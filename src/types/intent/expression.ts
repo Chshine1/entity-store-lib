@@ -1,4 +1,4 @@
-﻿export interface IntentExpression<TResult> {
+﻿export interface IntentUnit<TResult> {
   resultType: TResult;
   steps: QueryStep[];
   meta: {
@@ -13,11 +13,13 @@ export type QueryStep =
   | { type: 'skip'; count: number }
   | { type: 'take'; count: number }
   | { type: 'select'; selectorId: string }
-  | { type: 'include'; relation: string; subExpr: IntentExpression<any> }
+  | { type: 'include'; relation: string; subExpr: IntentUnit<any> }
   | { type: 'aggregate'; initial: any; accumulatorId: string; resultPath: string };
 
-export const EMPTY_EXPRESSION: IntentExpression<never> = {
+export const EMPTY_EXPRESSION: IntentUnit<never> = {
   resultType: undefined as never,
   steps: [],
   meta: {entityKey: ''}
 };
+
+export type IntentUnitsRecord = Record<string, IntentUnit<any>>;

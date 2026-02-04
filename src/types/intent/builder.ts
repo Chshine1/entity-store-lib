@@ -1,40 +1,48 @@
-﻿import type {QueryOperator} from "./common.ts";
-import type {EntityConfig} from "../entity.ts";
-import type {RelationConfig, ResolvedRelation, SourcedRelations} from "../relation.ts";
-import type {IntentUnit} from "./unit.ts";
-import type {IntentExpression} from "./expression.ts";
+import type {QueryOperator} from "./common.ts";
+import type {RelationsRecord, ResolveRelation, SourcedRelations} from "../relation.ts";
+import type {Intent} from "./unit.ts";
+import type {IntentUnitsRecord, IntentUnit} from "./expression.ts";
+import type {EntitiesRecord} from "../entity.ts";
 
-export interface IIntentBuilder<
-  TUnit extends Record<string, IntentExpression<any>>,
+export abstract class IntentBuilderBase<
+  TEntities extends EntitiesRecord,
+  TRelations extends RelationsRecord,
+  TUnits extends IntentUnitsRecord,
   TTag extends string,
-  TEntities extends Record<string, EntityConfig<any, any>>,
-  TRelations extends Record<string, RelationConfig<any, any, any>>,
   KEntity extends keyof TEntities,
   R
 > {
-  where: <K extends keyof KEntity>(
+  protected readonly tag: TTag;
+  protected readonly entityKey: KEntity;
+  
+  protected constructor(tag: TTag, entityKey: KEntity) {
+    this.tag = tag;
+    this.entityKey = entityKey;
+  }
+  
+  abstract where: <K extends keyof KEntity>(
     field: K,
     operator: QueryOperator,
     value: KEntity[K] | KEntity[K][]
-  ) => IIntentBuilder<TUnit, TTag, TEntities, TRelations, KEntity, R>;
+  ) => IntentBuilderBase<TEntities, TRelations, TUnits, TTag, KEntity, R>;
   
-  orderBy: <K extends keyof KEntity>(
+  abstract orderBy: <K extends keyof KEntity>(
     field: K,
     direction: 'asc' | 'desc'
-  ) => IIntentBuilder<TUnit, TTag, TEntities, TRelations, KEntity, R>;
+  ) => IntentBuilderBase<TEntities, TRelations, TUnits, TTag, KEntity, R>;
   
-  skip: (count: number) => IIntentBuilder<TUnit, TTag, TEntities, TRelations, KEntity, R>;
+  abstract skip: (count: number) => IntentBuilderBase<TEntities, TRelations, TUnits, TTag, KEntity, R>;
   
-  take: (count: number) => IIntentBuilder<TUnit, TTag, TEntities, TRelations, KEntity, R>;
+  abstract take: (count: number) => IntentBuilderBase<TEntities, TRelations, TUnits, TTag, KEntity, R>;
   
-  select: <U>(selector: (data: R) => U) => IIntentBuilder<TUnit, TTag, TEntities, TRelations, KEntity, U>;
+  abstract select: <U>(selector: (data: R) => U) => IntentBuilderBase<TEntities, TRelations, TUnits, TTag, KEntity, U>;
   
-  include: <K extends keyof SourcedRelations<TEntities, TRelations, KEntity>, S>(
+  abstract include: <K extends keyof SourcedRelations<TEntities, TRelations, KEntity>, S>(
     relation: K,
-    config: IIntentBuilder<TUnit, TTag, TEntities, TRelations, ResolvedRelation<TRelations[K], TEntities>["targetType"], S>
-  ) => IIntentBuilder<TUnit, TTag, TEntities, TRelations, KEntity, R & S>;
+    config: IntentBuilderBase<TEntities, TRelations, TUnits, TTag, ResolveRelation<TEntities, TRelations[K]>["targetType"], S>
+  ) => IntentBuilderBase<TEntities, TRelations, TUnits, TTag, KEntity, R & S>;
   
-  aggregate: <S>(initial: S, accumulate: (current: S, n: R) => S) => IIntentBuilder<TUnit, TTag, TEntities, TRelations, KEntity, S>;
+  abstract aggregate: <S>(initial: S, accumulate: (current: S, n: R) => S) => IntentBuilderBase<TEntities, TRelations, TUnits, TTag, KEntity, S>;
   
-  build: () => IntentUnit<KEntity & Record<TTag, IntentExpression<R[]>>, TEntities, TRelations>;
+  abstract build: () => Intent<TEntities, TRelations, TUnits & Record<TTag, IntentUnit<R[]>>>;
 }

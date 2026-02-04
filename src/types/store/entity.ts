@@ -1,44 +1,44 @@
-﻿import type {BaseEntity, EntityConfig, ExtractEntity} from "../entity.ts";
-import type {RelationConfig} from "../relation.ts";
+import type {BaseEntity, EntitiesRecord, ExtractEntity} from "../entity.ts";
 import type {EntityOperationOptions} from "./common.ts";
+import type {RelationsRecord} from "../relation.ts";
 
 export interface EntityActionsSlice<
-  TEntities extends Record<string, EntityConfig<any, any>>,
-  TRelations extends Record<string, RelationConfig<any, any, any>>
+  TEntities extends EntitiesRecord,
+  TRelations extends RelationsRecord
 > {
-  create: <TEntityName extends keyof TEntities>(
-    entityType: TEntityName,
-    data: Omit<ExtractEntity<TEntities, TEntityName>, keyof BaseEntity>,
+  create: <KEntity extends keyof TEntities>(
+    entityKey: KEntity,
+    data: Omit<ExtractEntity<TEntities, KEntity>, keyof BaseEntity>,
     options?: EntityOperationOptions<TRelations>
-  ) => ExtractEntity<TEntities, TEntityName>;
+  ) => ExtractEntity<TEntities, KEntity>;
   
-  update: <TEntityName extends keyof TEntities>(
-    entityType: TEntityName,
+  update: <KEntity extends keyof TEntities>(
+    entityKey: KEntity,
     id: string,
-    data: Partial<Omit<ExtractEntity<TEntities, TEntityName>, keyof BaseEntity>>
-  ) => ExtractEntity<TEntities, TEntityName> | undefined;
+    data: Partial<Omit<ExtractEntity<TEntities, KEntity>, keyof BaseEntity>>
+  ) => ExtractEntity<TEntities, KEntity> | undefined;
   
-  remove: <TEntityName extends keyof TEntities>(
-    entityType: TEntityName,
+  remove: <KEntity extends keyof TEntities>(
+    entityKey: KEntity,
     id: string
   ) => boolean;
   
-  get: <TEntityName extends keyof TEntities>(
-    entityType: TEntityName,
+  get: <KEntity extends keyof TEntities>(
+    entityKey: KEntity,
     id: string
-  ) => ExtractEntity<TEntities, TEntityName> | undefined;
+  ) => ExtractEntity<TEntities, KEntity> | undefined;
   
-  getAll: <TEntityName extends keyof TEntities>(
-    entityType: TEntityName
-  ) => ExtractEntity<TEntities, TEntityName>[];
+  getAll: <KEntity extends keyof TEntities>(
+    entityKey: KEntity
+  ) => ExtractEntity<TEntities, KEntity>[];
   
-  find: <TEntityName extends keyof TEntities>(
-    entityType: TEntityName,
-    predicate: (entity: ExtractEntity<TEntities, TEntityName>) => boolean
-  ) => ExtractEntity<TEntities, TEntityName> | undefined;
+  find: <KEntity extends keyof TEntities>(
+    entityKey: KEntity,
+    predicate: (entity: ExtractEntity<TEntities, KEntity>) => boolean
+  ) => ExtractEntity<TEntities, KEntity> | undefined;
   
-  findAll: <TEntityName extends keyof TEntities>(
-    entityType: TEntityName,
-    predicate: (entity: ExtractEntity<TEntities, TEntityName>) => boolean
-  ) => ExtractEntity<TEntities, TEntityName>[];
+  findAll: <KEntity extends keyof TEntities>(
+    entityKey: KEntity,
+    predicate: (entity: ExtractEntity<TEntities, KEntity>) => boolean
+  ) => ExtractEntity<TEntities, KEntity>[];
 }

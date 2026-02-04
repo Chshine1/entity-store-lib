@@ -1,26 +1,26 @@
-﻿import type {BaseEntity, EntityConfig, ExtractEntity} from "../entity";
-import type {RelationConfig} from "../relation.ts";
+import type {BaseEntity, EntitiesRecord, ExtractEntity} from "../entity";
 import type {BatchResults, EntityOperationOptions} from "./common.ts";
+import type {RelationsRecord} from "../relation.ts";
 
 /**
  * Main entity store interface.
  */
 export interface BatchActionsSlice<
-  TEntities extends Record<string, EntityConfig<any, any>>,
-  TRelations extends Record<string, RelationConfig<any, any, any>>
+  TEntities extends EntitiesRecord,
+  TRelations extends RelationsRecord
 > {
   // Batch operations - now return detailed results
-  createMany: <TEntityName extends keyof TEntities>(
-    entityType: TEntityName,
-    data: Omit<ExtractEntity<TEntities, TEntityName>, keyof BaseEntity>[],
+  createMany: <KEntity extends keyof TEntities>(
+    entityKey: KEntity,
+    data: Omit<ExtractEntity<TEntities, KEntity>, keyof BaseEntity>[],
     options?: EntityOperationOptions<TRelations>
-  ) => BatchResults<ExtractEntity<TEntities, TEntityName>>;
+  ) => BatchResults<ExtractEntity<TEntities, KEntity>>;
   
-  updateMany: <TEntityName extends keyof TEntities>(
-    entityType: TEntityName,
+  updateMany: <KEntity extends keyof TEntities>(
+    entityKey: KEntity,
     updates: {
       id: string;
-      data: Partial<Omit<ExtractEntity<TEntities, TEntityName>, keyof BaseEntity>>;
+      data: Partial<Omit<ExtractEntity<TEntities, KEntity>, keyof BaseEntity>>;
     }[]
-  ) => BatchResults<ExtractEntity<TEntities, TEntityName>>;
+  ) => BatchResults<ExtractEntity<TEntities, KEntity>>;
 }

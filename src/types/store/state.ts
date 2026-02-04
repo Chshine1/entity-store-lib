@@ -1,10 +1,10 @@
-﻿import type {EntityConfig, ExtractEntity} from "../entity.ts";
-import type {RelationConfig} from "../relation.ts";
+import type {EntitiesRecord, ExtractEntity} from "../entity.ts";
 import type {EntityOperationOptions} from "./common.ts";
+import type {RelationsRecord} from "../relation.ts";
 
 export interface EntityStoreStateSlice<
-  TEntities extends Record<string, EntityConfig<any, any>>,
-  TRelations extends Record<string, RelationConfig<any, any, any>>
+  TEntities extends EntitiesRecord,
+  TRelations extends RelationsRecord
 > {
   __entities: {
     [K in keyof TEntities]: Map<string, ExtractEntity<TEntities, K>>;
@@ -15,12 +15,12 @@ export interface EntityStoreStateSlice<
 }
 
 export interface StateActionsSlice<
-  TEntities extends Record<string, EntityConfig<any, any>>,
-  TRelations extends Record<string, RelationConfig<any, any, any>>
+  TEntities extends EntitiesRecord,
+  TRelations extends RelationsRecord
 > {
-  load: <TEntityName extends keyof TEntities>(
-    entityType: TEntityName,
-    data: ExtractEntity<TEntities, TEntityName>,
+  load: <KEntity extends keyof TEntities>(
+    entityKey: KEntity,
+    data: ExtractEntity<TEntities, KEntity>,
     options?: EntityOperationOptions<TRelations>
   ) => boolean;
   
