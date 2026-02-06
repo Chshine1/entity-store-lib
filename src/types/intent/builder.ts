@@ -1,13 +1,19 @@
 import type {
-  AggregateOperation,
   AggregationType,
-  IncludeOperation,
-  Operation, OrderByOperation,
-  QueryOperator, SelectOperation, SkipOperation,
-  SortDirection, TakeOperation, WhereOperation
+  QueryOperator,
+  SortDirection,
 } from "./common.ts";
 import type {EntitiesRecord, ExtractEntity} from "../entity.ts";
-import type {IntentUnit, IntentUnitsRecord} from "./unit.ts";
+import type {
+  AggregateOperation,
+  IncludeOperation,
+  IntentUnit,
+  IntentUnitsRecord,
+  Operation,
+  OrderByOperation, SelectOperation,
+  SkipOperation, TakeOperation,
+  WhereOperation
+} from "./unit.ts";
 import type {RelationsRecord, ResolveRelation} from "../relation.ts";
 import {Intent} from "./intent.ts";
 
@@ -15,7 +21,7 @@ export class IntentBuilder<
   TEntities extends EntitiesRecord,
   TRelations extends RelationsRecord,
   TUnits extends IntentUnitsRecord,
-  TTag extends string,
+  TTag extends Exclude<string, keyof TUnits>,
   KEntity extends keyof TEntities,
   TResult
 > {

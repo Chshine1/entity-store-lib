@@ -15,7 +15,7 @@ export class Intent<
   }
   
   attach: <
-    TTag extends string,
+    TTag extends Exclude<string, keyof TUnits>,
     KEntity extends keyof TEntities
   >(tag: TTag, entityKey: KEntity) => IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, ExtractEntity<TEntities, KEntity>>
     = (tag, entityKey) => new IntentBuilder(entityKey, tag, this.units);
