@@ -1,34 +1,77 @@
 ﻿import type {IntentUnit} from "./unit.ts";
-import type {EntitiesRecord} from "../entity.ts";
-import type {RelationsRecord} from "../relation.ts";
+import type {EntitiesRecord, ExtractEntity} from "../entity.ts";
+import type {RelationsRecord, ResolveRelation, SourcedRelations} from "../relation.ts";
 
-export type Operation = 'where' | 'orderBy' | 'skip' | 'take' | 'select' | 'include' | 'aggregate';
-
-export type QueryOperator =
-  | 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte'
-  | 'in' | 'notIn' | 'contains' | 'startsWith' | 'endsWith'
-  | 'isNull' | 'isNotNull';
-
+export type QueryOperator = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'notIn';
 export type SortDirection = 'asc' | 'desc';
+export type AggregationType = 'sum' | 'avg' | 'min' | 'max' | 'count';
 
-export interface QueryCondition {
-  field: string;
+export type Operation<TEntities extends EntitiesRecord, TRelations extends RelationsRecord, KEntity extends keyof TEntities> =
+  | WhereOperation<TEntities, KEntity, any, any>
+  | OrderByOperation<TEntities, KEntity, any>
+  | SkipOperation
+  | TakeOperation
+  | SelectOperation<any, any>
+  | IncludeOperation<TEntities, TRelations, KEntity, any>
+  | AggregateOperation<any, any, any>;
+
+export type WhereOperation<
+  TEntities extends EntitiesRecord,
+  KEntity extends keyof TEntities,
+  K extends keyof ExtractEntity<TEntities, KEntity>,
+  V
+> = {
+  type: 'where';
+  field: K;
   operator: QueryOperator;
-  value?: any;
-  values?: any[];
-}
+  value: V | V[];
+};
 
-export interface SortCondition {
-  field: string;
+export type OrderByOperation<
+  TEntities extends EntitiesRecord,
+  KEntity extends keyof TEntities,
+  K extends keyof ExtractEntity<TEntities, KEntity>
+> = {
+  type: 'orderBy';
+  field: K;
   direction: SortDirection;
-}
+};
 
-export interface IncludeConfig<TEntities extends EntitiesRecord, TRelations extends RelationsRecord> {
-  relationKey: keyof TRelations;
-  unit: IntentUnit<TEntities, TRelations, any>;
-}
+export type SkipOperation = {
+  type: 'skip';
+  count: number;
+};
 
-export interface AggregateConfig<T> {
-  initialValue: T;
-  accumulator: (current: T, item: any) => T;
-}
+export type TakeOperation = {
+  type: 'take';
+  count: number;
+};
+
+export type SelectOperation<
+  TResult,
+  K extends Array<keyof TResult>
+> = {
+  type: 'select';
+  fields: K;
+};
+
+export type IncludeOperation<
+  TEntities extends EntitiesRecord,
+  TRelations extends RelationsRecord,
+  KEntity extends keyof TEntities,
+  KRelation extends keyof SourcedRelations<TEntities, TRelations, KEntity>
+> = {
+  type: 'include';
+  relationKey: KRelation;
+  subQuery: IntentUnit<TEntities, TRelations, ResolveRelation<TRelations, TRelations[KRelation]>["targetType"]>;
+};
+
+export type AggregateOperation<
+  TResult,
+  K extends keyof TResult,
+  TAggregation extends AggregationType
+> = {
+  type: 'aggregate';
+  aggregation: TAggregation;
+  field: K;
+};

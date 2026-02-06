@@ -1,15 +1,15 @@
 import type {
-  AggregateConfig, IncludeConfig,
-  Operation,
-  QueryCondition,
-  QueryOperator,
-  SortCondition,
-  SortDirection
+  AggregateOperation,
+  AggregationType,
+  IncludeOperation,
+  Operation, OrderByOperation,
+  QueryOperator, SelectOperation, SkipOperation,
+  SortDirection, TakeOperation, WhereOperation
 } from "./common.ts";
-import type {RelationsRecord, ResolveRelation, SourcedRelations} from "../relation.ts";
+import type {EntitiesRecord, ExtractEntity} from "../entity.ts";
+import type {IntentUnit, IntentUnitsRecord} from "./unit.ts";
+import type {RelationsRecord, ResolveRelation} from "../relation.ts";
 import {Intent} from "./intent.ts";
-import type {IntentUnitsRecord, IntentUnit} from "./unit.ts";
-import type {EntitiesRecord} from "../entity.ts";
 
 export class IntentBuilder<
   TEntities extends EntitiesRecord,
@@ -19,186 +19,129 @@ export class IntentBuilder<
   KEntity extends keyof TEntities,
   TResult
 > {
-  private readonly tag: TTag;
+  private operations: Operation<TEntities, TRelations, KEntity>[] = [];
   private readonly entityKey: KEntity;
+  private readonly tag: TTag;
   private readonly units: TUnits;
-  private readonly unit: IntentUnit<TEntities, TRelations, TResult>;
   
   public constructor(
-    tag: TTag,
     entityKey: KEntity,
-    units: TUnits,
-    existingUnit?: IntentUnit<TEntities, TRelations, TResult>
+    tag: TTag,
+    units: TUnits
   ) {
-    this.tag = tag;
     this.entityKey = entityKey;
+    this.tag = tag;
     this.units = units;
-    
-    if (existingUnit) {
-      this.unit = existingUnit;
-    } else {
-      this.unit = {
-        entityKey: entityKey,
-      };
-    }
   }
   
-  private cloneWithNewUnit<R>(
-    newUnit: IntentUnit<TEntities, TRelations, R>
-  ): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, R> {
-    return new IntentBuilder(
-      this.tag,
-      this.entityKey,
-      this.units,
-      newUnit
-    );
-  }
-  
-  private addChainLink(operation: Operation, data: any): IntentUnit<TEntities, TRelations, TResult> {
-    return {
-      ...this.unit,
-      chain: {
-        previous: this.unit,
-        operation,
-        data
-      }
-    };
-  }
-  
-  where<K extends keyof TEntities[KEntity]>(
+  where<K extends keyof ExtractEntity<TEntities, KEntity>>(
     field: K,
     operator: QueryOperator,
-    value: TEntities[KEntity][K] | TEntities[KEntity][K][]
+    value: ExtractEntity<TEntities, KEntity>[K] | ExtractEntity<TEntities, KEntity>[K][]
   ): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, TResult> {
-    const condition: QueryCondition = {
-      field: field as string,
+    const operation: WhereOperation<TEntities, KEntity, K, ExtractEntity<TEntities, KEntity>[K]> = {
+      type: 'where',
+      field: field,
       operator,
+      value
     };
-    
-    if (Array.isArray(value)) {
-      condition.values = value;
-    } else {
-      condition.value = value;
-    }
-    
-    const newUnit = this.addChainLink('where', condition);
-    newUnit.where = [...(this.unit.where || []), condition];
-    
-    return this.cloneWithNewUnit(newUnit);
+    this.operations.push(operation);
+    return this;
   }
   
-  orderBy<K extends keyof TEntities[KEntity]>(
+  orderBy<K extends keyof ExtractEntity<TEntities, KEntity>>(
     field: K,
     direction: SortDirection
   ): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, TResult> {
-    const sortCondition: SortCondition = {
-      field: field as string,
+    const operation: OrderByOperation<TEntities, KEntity, K> = {
+      type: 'orderBy',
+      field: field,
       direction
     };
-    
-    const newUnit = this.addChainLink('orderBy', sortCondition);
-    newUnit.orderBy = [...(this.unit.orderBy || []), sortCondition];
-    
-    return this.cloneWithNewUnit(newUnit);
+    this.operations.push(operation);
+    return this;
   }
   
   skip(count: number): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, TResult> {
-    const newUnit = this.addChainLink('skip', count);
-    newUnit.skip = count;
-    
-    return this.cloneWithNewUnit(newUnit);
+    const operation: SkipOperation = {
+      type: 'skip',
+      count
+    };
+    this.operations.push(operation);
+    return this;
   }
   
   take(count: number): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, TResult> {
-    const newUnit = this.addChainLink('take', count);
-    newUnit.take = count;
-    
-    return this.cloneWithNewUnit(newUnit);
+    const operation: TakeOperation = {
+      type: 'take',
+      count
+    };
+    this.operations.push(operation);
+    return this;
   }
   
-  select<U>(
-    selector: (data: TResult) => U
-  ): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, U> {
-    const newUnit = this.addChainLink('select', selector);
-    
-    // 尝试提取字段名（如果是简单的字段选择）
-    let fields: string[] | undefined;
-    try {
-      // 这是一个简化的实现，实际中可能需要更复杂的 AST 分析
-      const selectorStr = selector.toString();
-      // 这里可以添加逻辑来解析 selector 函数，提取字段名
-      // 例如，对于简单的箭头函数如 x => x.id，可以提取出 'id'
-    } catch {
-      // 如果无法解析，就使用 transform 函数
-    }
-    
-    newUnit.selector = {
-      ...this.unit.selector,
-      fields,
-      transform: selector
+  select<K extends Array<keyof TResult>>(
+    fields: [...K]
+  ): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, Pick<TResult, K[number]>
+  > {
+    const operation: SelectOperation<TResult, K> = {
+      type: 'select',
+      fields
     };
-    
-    // 注意：这里创建新的 builder 时，类型参数 U 替换了 TResult
-    return new IntentBuilder(
-      this.tag,
-      this.entityKey,
-      this.units,
-      newUnit
-    ) as any; // 类型断言，因为我们需要改变泛型参数
+    this.operations.push(operation);
+    return this;
   }
   
   include<
-    K extends keyof SourcedRelations<TEntities, TRelations, KEntity>,
-    S
+    KRelation extends keyof TRelations,
+    TSubTag extends string,
+    TSubResult
   >(
-    relation: K,
-    config: IntentBuilder<TEntities, TRelations, TUnits, TTag,
-      ResolveRelation<TEntities, TRelations[K]>["targetType"], S>
-  ): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, TResult & S> {
-    const includeConfig: IncludeConfig<TEntities, TRelations> = {
-      relationKey: relation,
-      unit: config.build().units[this.tag] // 假设这里能获取到配置的 unit
+    relationKey: KRelation,
+    subQuery: IntentBuilder<
+      TEntities,
+      TRelations,
+      {},
+      TSubTag,
+      ResolveRelation<TEntities, TRelations[KRelation]>["targetType"],
+      TSubResult>
+  ): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, TResult & Record<TSubTag, TSubResult[]>> {
+    const operation: IncludeOperation<TEntities, TRelations, KEntity, KRelation> = {
+      type: 'include',
+      relationKey,
+      subQuery: {
+        entityKey: subQuery.entityKey,
+        operations: [...subQuery.operations]
+      }
     };
-    
-    const newUnit = this.addChainLink('include', includeConfig);
-    
-    // 创建或更新 includes Map
-    const includes = this.unit.includes
-      ? new Map(this.unit.includes)
-      : new Map();
-    
-    includes.set(relation as string, includeConfig);
-    newUnit.includes = includes;
-    
-    return this.cloneWithNewUnit(newUnit) as any;
+    this.operations.push(operation);
+    return this;
   }
   
-  aggregate<U>(
-    initial: U,
-    accumulate: (current: U, n: TResult) => U
-  ): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, U> {
-    const aggregateConfig: AggregateConfig<U> = {
-      initialValue: initial,
-      accumulator: accumulate
+  aggregate<K extends keyof TResult, TAggregate extends AggregationType>(
+    field: K,
+    aggregation: TAggregate,
+  ): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, TResult[K]> {
+    const operation: AggregateOperation<TResult, K, TAggregate> = {
+      type: 'aggregate',
+      aggregation,
+      field: field
     };
-    
-    const newUnit = this.addChainLink('aggregate', aggregateConfig);
-    newUnit.aggregation = aggregateConfig;
-    
-    return new IntentBuilder(
-      this.tag,
-      this.entityKey,
-      this.units,
-      newUnit
-    ) as any;
+    this.operations.push(operation);
+    return this;
   }
   
-  build(): Intent<TEntities, TRelations, TUnits & Record<TTag, IntentUnit<TEntities, TRelations, TResult>>> {
-    const finalUnits = {
+  build(): Intent<TEntities, TRelations, TUnits & Record<TTag, IntentUnit<TEntities, TRelations, KEntity>>> {
+    const newUnit: IntentUnit<TEntities, TRelations, KEntity> = {
+      entityKey: this.entityKey,
+      operations: this.operations,
+    };
+    
+    const newUnits = {
       ...this.units,
-      [this.tag]: this.unit
-    } as TUnits & Record<TTag, IntentUnit<TEntities, TRelations, TResult>>;
+      [this.tag]: newUnit
+    };
     
-    return new Intent<TEntities, TRelations, TUnits & Record<TTag, IntentUnit<TEntities, TRelations, TResult>>>(finalUnits);
+    return new Intent(newUnits);
   }
 }

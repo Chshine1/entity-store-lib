@@ -18,9 +18,5 @@ export class Intent<
     TTag extends string,
     KEntity extends keyof TEntities
   >(tag: TTag, entityKey: KEntity) => IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, ExtractEntity<TEntities, KEntity>>
-    = (tag, entityKey) => new IntentBuilder(tag, entityKey, this.units);
+    = (tag, entityKey) => new IntentBuilder(entityKey, tag, this.units);
 }
-
-export const EMPTY_INTENT: <TEntities extends EntitiesRecord, TRelations extends RelationsRecord>()
-  => Intent<TEntities, TRelations, {}>
-  = () => new Intent({});
