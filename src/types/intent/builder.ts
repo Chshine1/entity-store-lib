@@ -2,7 +2,7 @@ import type {
   AggregationType,
   QueryOperator,
   SortDirection,
-} from "./common.ts";
+} from "../core.ts";
 import type {
   AggregateOperation,
   IncludeOperation,

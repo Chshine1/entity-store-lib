@@ -1,5 +1,5 @@
 ﻿import type {ExtractRelation, SourcedRelations, UnifiedConfig} from "../config.ts";
-import type {AggregationType, QueryOperator, SortDirection} from "./common.ts";
+import type {AggregationType, QueryOperator, SortDirection} from "../core.ts";
 import type {ExtractSource, IntentSource} from "../source.ts";
 
 export type Operation<
