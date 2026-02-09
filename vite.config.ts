@@ -5,20 +5,37 @@ import dts from 'vite-plugin-dts';
 export default defineConfig({
   build: {
     lib: {
-      entry: path.resolve(__dirname, 'src/index.ts'),
+      entry: {
+        index: path.resolve(__dirname, 'src/index.ts'),
+        react: path.resolve(__dirname, 'src/react/index.ts')
+      },
       name: 'EntityStoreLib',
-      fileName: (format) => `index.${format}.js`,
+      formats: ['es', 'umd'],
+      fileName: (format, entryName) => `${entryName}.${format}.js`,
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'zustand'],
+      external: ['react', 'react-dom'],
       output: {
         globals: {
-          react: 'React',
+          'react': 'React',
           'react-dom': 'ReactDOM',
-          zustand: 'zustand',
         },
+        interop: 'auto'
       },
     },
+    sourcemap: true,
+    minify: false
   },
-  plugins: [dts()],
+  plugins: [dts({
+    entryRoot: 'src',
+    outDir: 'dist',
+    insertTypesEntry: true,
+    rollupTypes: true
+  })],
+  resolve: {
+    alias: {
+      'react': path.resolve(__dirname, './node_modules/react'),
+      'react-dom': path.resolve(__dirname, './node_modules/react-dom')
+    }
+  }
 });
