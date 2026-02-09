@@ -1,6 +1,5 @@
 import type {EntityOperationOptions} from "./common.ts";
-import {IntentBuilder} from "../intent";
-import type {EntityKeys, ExtractEntity, RelationKeys, UnifiedConfig} from "../config.ts";
+import {type EntityKeys, type ExtractEntity, IntentBuilder, type RelationKeys, type UnifiedConfig} from "../../types";
 
 export interface EntityStoreStateSlice<
   TConfig extends UnifiedConfig,

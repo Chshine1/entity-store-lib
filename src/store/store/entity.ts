@@ -1,7 +1,5 @@
-import type {EntityKeys, ExtractEntity, UnifiedConfig} from "../config.ts";
-import type {BaseEntity} from "../core.ts";
 import type {EntityOperationOptions} from "./common.ts";
-
+import type {BaseEntity, EntityKeys, ExtractEntity, UnifiedConfig} from "../../types";
 
 export interface EntityActionsSlice<
   TConfig extends UnifiedConfig,

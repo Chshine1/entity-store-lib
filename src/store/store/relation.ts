@@ -1,4 +1,4 @@
-import type {ExtractRelation, RelationKeys, UnifiedConfig} from "../config.ts";
+import type {ExtractRelation, RelationKeys, UnifiedConfig} from "../../types";
 
 export interface RelationActionsSlice<
   TConfig extends UnifiedConfig,

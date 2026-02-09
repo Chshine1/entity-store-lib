@@ -1,7 +1,7 @@
-import type {IntentUnitsRecord} from "./unit.ts";
+import type {ExtractUnitResult, IntentUnitsRecord, UnitKeys} from "./unit.ts";
 import {IntentBuilder} from "./builder.ts";
 import type {EntityKeys, ExtractEntity, UnifiedConfig} from "../config.ts";
-import type {ExtractSource, IntentSource} from "../source.ts";
+import type {ExtractIntentSource, IntentSource} from "../intent-source.ts";
 
 export class Intent<
   TConfig extends UnifiedConfig,
@@ -14,7 +14,7 @@ export class Intent<
   }
   
   attachToEntity<
-    TTag extends Exclude<string, keyof TUnits>,
+    TTag extends Exclude<string, UnitKeys<TUnits>>,
     KEntity extends EntityKeys<TConfig>
   >(tag: TTag, entityKey: KEntity): IntentBuilder<TConfig, TUnits, TTag, {
     type: "entity",
@@ -24,19 +24,19 @@ export class Intent<
   }
   
   attachToUnit<
-    TTag extends Exclude<string, keyof TUnits>,
-    KUnit extends keyof TUnits
+    TTag extends Exclude<string, UnitKeys<TUnits>>,
+    KUnit extends UnitKeys<TUnits>
   >(tag: TTag, unitTag: KUnit): IntentBuilder<TConfig, TUnits, TTag, {
     type: "unit",
     key: KUnit
-  }, TUnits[KUnit]> {
+  }, ExtractUnitResult<TUnits, KUnit>> {
     return this.attach(tag, {type: "unit", key: unitTag});
   }
   
   private attach<
     TTag extends Exclude<string, keyof TUnits>,
     KSource extends IntentSource<TConfig, TUnits>
-  >(tag: TTag, sourceKey: KSource): IntentBuilder<TConfig, TUnits, TTag, KSource, ExtractSource<TConfig, TUnits, KSource>> {
+  >(tag: TTag, sourceKey: KSource): IntentBuilder<TConfig, TUnits, TTag, KSource, ExtractIntentSource<TConfig, TUnits, KSource>> {
     return new IntentBuilder(sourceKey, tag, this.units);
   }
 }

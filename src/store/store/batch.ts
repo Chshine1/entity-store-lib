@@ -1,6 +1,5 @@
-import type {EntityKeys, ExtractEntity, UnifiedConfig} from "../config.ts";
-import type {BaseEntity} from "../core.ts";
 import type {BatchResults, EntityOperationOptions} from "./common.ts";
+import type {BaseEntity, EntityKeys, ExtractEntity, UnifiedConfig} from "../../types";
 
 /**
  * Main entity store interface.
