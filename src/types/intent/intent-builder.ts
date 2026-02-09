@@ -1,22 +1,28 @@
-import type {
-  AggregationType,
-  QueryOperator,
-  SortDirection,
-} from "../core.ts";
+import type {AggregationType, QueryOperator, SortDirection,} from "../core";
 import type {
   AggregateOperation,
   IncludeOperation,
-  IntentUnit,
-  IntentUnitsRecord,
   Operation,
-  OrderByOperation, SelectOperation,
-  SkipOperation, TakeOperation,
+  OrderByOperation,
+  SelectOperation,
+  SkipOperation,
+  TakeOperation,
   WhereOperation
-} from "./unit.ts";
-import {Intent} from "./intent.ts";
-import type {ExtractRelation, SourcedRelations, UnifiedConfig} from "../config.ts";
-import type {IntentSourceAsEntityKey, ExtractIntentSource, IntentSourceFromEntityKey, IntentSource} from "../intent-source.ts";
+} from "./operations";
+import {Intent} from "./intent-class.ts";
+import type {ExtractRelation, SourcedRelations, UnifiedConfig} from "../config";
+import type {
+  ExtractIntentSource,
+  IntentSource,
+  IntentSourceAsEntityKey,
+  IntentSourceFromEntityKey
+} from "./intent-source.ts";
+import type {IntentUnit, IntentUnitsRecord} from "./intent-unit.ts";
 
+/**
+ * Builder class for constructing intent operations.
+ * Provides a fluent API for building complex queries step by step.
+ */
 export class IntentBuilder<
   TConfig extends UnifiedConfig,
   TUnits extends IntentUnitsRecord,
@@ -39,6 +45,10 @@ export class IntentBuilder<
     this.units = units;
   }
   
+  /**
+   * Adds a WHERE condition to the query.
+   * Filters results based on a field and comparison operator.
+   */
   where<K extends keyof ExtractIntentSource<TConfig, TUnits, KSource>>(
     field: K,
     operator: QueryOperator,
@@ -54,6 +64,10 @@ export class IntentBuilder<
     return this;
   }
   
+  /**
+   * Adds an ORDER BY clause to the query.
+   * Sorts results based on a field and direction.
+   */
   orderBy<K extends keyof ExtractIntentSource<TConfig, TUnits, KSource>>(
     field: K,
     direction: SortDirection
@@ -67,6 +81,10 @@ export class IntentBuilder<
     return this;
   }
   
+  /**
+   * Adds a SKIP clause to the query.
+   * Skips the specified number of results.
+   */
   skip(count: number): IntentBuilder<TConfig, TUnits, TTag, KSource, TResult> {
     const operation: SkipOperation = {
       type: 'skip',
@@ -76,6 +94,10 @@ export class IntentBuilder<
     return this;
   }
   
+  /**
+   * Adds a TAKE clause to the query.
+   * Limits the number of results returned.
+   */
   take(count: number): IntentBuilder<TConfig, TUnits, TTag, KSource, TResult> {
     const operation: TakeOperation = {
       type: 'take',
@@ -85,6 +107,10 @@ export class IntentBuilder<
     return this;
   }
   
+  /**
+   * Adds a SELECT clause to the query.
+   * Specifies which fields to include in the result.
+   */
   select<K extends Array<keyof TResult>>(
     fields: [...K],
   ): IntentBuilder<TConfig, TUnits, TTag, KSource, Pick<TResult, K[number]>
@@ -97,6 +123,10 @@ export class IntentBuilder<
     return this;
   }
   
+  /**
+   * Adds an INCLUDE clause to the query.
+   * Includes related entities in the result.
+   */
   include<
     KRelation extends keyof SourcedRelations<TConfig, IntentSourceAsEntityKey<TConfig, KSource>>,
     TSubTag extends string,
@@ -122,6 +152,10 @@ export class IntentBuilder<
     return this;
   }
   
+  /**
+   * Adds an AGGREGATE operation to the query.
+   * Computes summary statistics on a field.
+   */
   aggregate<K extends keyof TResult, TAggregate extends AggregationType>(
     field: K,
     aggregation: TAggregate,
@@ -135,6 +169,10 @@ export class IntentBuilder<
     return this;
   }
   
+  /**
+   * Builds the intent with the current operations.
+   * Returns a new Intent instance with the configured operations.
+   */
   build(): Intent<TConfig, TUnits & Record<TTag, IntentUnit<TConfig, TUnits, KSource, TResult>>> {
     const newUnit: IntentUnit<TConfig, TUnits, KSource, TResult> = {
       sourceKey: this.sourceKey,

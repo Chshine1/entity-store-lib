@@ -1,8 +1,12 @@
-import type {ExtractUnitResult, IntentUnitsRecord, UnitKeys} from "./unit.ts";
-import {IntentBuilder} from "./builder.ts";
-import type {EntityKeys, ExtractEntity, UnifiedConfig} from "../config.ts";
-import type {ExtractIntentSource, IntentSource} from "../intent-source.ts";
+import type {ExtractUnitResult, IntentUnitsRecord, UnitKeys} from "./intent-unit.ts";
+import {IntentBuilder} from "./intent-builder.ts";
+import type {EntityKeys, ExtractEntity, UnifiedConfig} from "../config";
+import type {ExtractIntentSource, IntentSource} from "./intent-source.ts";
 
+/**
+ * Main Intent class that manages and builds complex queries.
+ * Provides methods to attach operations to entities or other units.
+ */
 export class Intent<
   TConfig extends UnifiedConfig,
   TUnits extends IntentUnitsRecord
@@ -13,6 +17,10 @@ export class Intent<
     this.units = units;
   }
   
+  /**
+   * Attaches a new operation to an entity.
+   * Creates an IntentBuilder starting from a specific entity.
+   */
   attachToEntity<
     TTag extends Exclude<string, UnitKeys<TUnits>>,
     KEntity extends EntityKeys<TConfig>
@@ -23,6 +31,10 @@ export class Intent<
     return this.attach(tag, {type: "entity", key: entityKey});
   }
   
+  /**
+   * Attaches a new operation to an existing unit.
+   * Creates an IntentBuilder starting from a previously defined unit.
+   */
   attachToUnit<
     TTag extends Exclude<string, UnitKeys<TUnits>>,
     KUnit extends UnitKeys<TUnits>
@@ -33,6 +45,10 @@ export class Intent<
     return this.attach(tag, {type: "unit", key: unitTag});
   }
   
+  /**
+   * Private method to attach an operation to a source.
+   * Internal helper for creating IntentBuilders.
+   */
   private attach<
     TTag extends Exclude<string, keyof TUnits>,
     KSource extends IntentSource<TConfig, TUnits>

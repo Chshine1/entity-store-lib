@@ -1,44 +1,42 @@
-﻿import type {BaseEntity} from "./core.ts";
+import type {EntityConfig} from "./entity-config.ts";
+import type {RelationConfig} from "./relation-config.ts";
 
 /**
- * Configuration for an entity type.
- * @template TName - The name of the entity type (must be unique).
- * @template TEntity - The entity type that extends BaseEntity.
+ * Combined configuration object that holds all entity and relation definitions.
+ * This serves as the central configuration point for the entity store.
  */
-export interface EntityConfig<KEntity extends string, TEntity extends BaseEntity> {
-  name: KEntity;
-  defaultValues?: Partial<Omit<TEntity, keyof BaseEntity>>;
-  generateId?: () => string;
-}
-
-/**
- * Configuration for a relation between entities.
- * @template TRelationName - Unique name for the relation.
- * @template TSourceName - Name of the source entity type.
- * @template TTargetName - Name of the target entity type.
- */
-export interface RelationConfig<
-  KRelation extends string,
-  KSource extends string,
-  KTarget extends string
-> {
-  name: KRelation;
-  sourceType: KSource;
-  targetType: KTarget;
-}
-
 export type UnifiedConfig = {
+  /** Map of entity configurations indexed by entity name */
   entities: Record<string, EntityConfig<any, any>>;
+  /** Map of relation configurations indexed by relation name */
   relations: Record<string, RelationConfig<any, any, any>>;
 };
 
+/**
+ * Extracts the entity keys from a configuration object.
+ * Used to get the available entity types from a config.
+ */
 export type EntityKeys<TConfig extends UnifiedConfig> = keyof TConfig["entities"];
+
+/**
+ * Extracts the relation keys from a configuration object.
+ * Used to get the available relation types from a config.
+ */
 export type RelationKeys<TConfig extends UnifiedConfig> = keyof TConfig["relations"];
 
+/**
+ * Extracts the entity type for a given entity key from a configuration.
+ * Maps an entity key to its corresponding entity type definition.
+ */
 export type ExtractEntity<TConfig extends UnifiedConfig, KEntity extends EntityKeys<TConfig>> =
   TConfig["entities"][KEntity] extends EntityConfig<any, infer TEntity>
     ? TEntity
     : never;
+
+/**
+ * Extracts the relation details for a given relation key from a configuration.
+ * Provides information about the source and target entities of a relation.
+ */
 export type ExtractRelation<TConfig extends UnifiedConfig, KRelation extends RelationKeys<TConfig>> =
   TConfig["relations"][KRelation] extends RelationConfig<any, infer KSource, infer KTarget>
     ? {
@@ -49,12 +47,13 @@ export type ExtractRelation<TConfig extends UnifiedConfig, KRelation extends Rel
     }
     : never;
 
-/*
- * Extract relations whose source is the given entity.
+/**
+ * Extracts all relations that originate from a given entity.
+ * This type maps all relations where the specified entity is the source.
  */
 export type SourcedRelations<TConfig extends UnifiedConfig, KSource extends EntityKeys<TConfig>> = {
   [KR in RelationKeys<TConfig>]?:
   ExtractRelation<TConfig, KR>["sourceKey"] extends KSource
     ? TConfig["relations"][KR]
     : never;
-}
+};
