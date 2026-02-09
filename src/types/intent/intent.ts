@@ -1,11 +1,10 @@
 import type {IntentUnitsRecord} from "./unit.ts";
 import {IntentBuilder} from "./builder.ts";
-import type {EntitiesRecord, ExtractEntity} from "../entity.ts";
-import type {RelationsRecord} from "../relation.ts";
+import type {UnifiedConfig} from "../config.ts";
+import type {ExtractSource, IntentSource} from "../source.ts";
 
 export class Intent<
-  TEntities extends EntitiesRecord,
-  TRelations extends RelationsRecord,
+  TConfig extends UnifiedConfig,
   TUnits extends IntentUnitsRecord
 > {
   private readonly units: TUnits;
@@ -16,7 +15,7 @@ export class Intent<
   
   attach: <
     TTag extends Exclude<string, keyof TUnits>,
-    KEntity extends keyof TEntities
-  >(tag: TTag, entityKey: KEntity) => IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, ExtractEntity<TEntities, KEntity>>
-    = (tag, entityKey) => new IntentBuilder(entityKey, tag, this.units);
+    KSource extends IntentSource<TConfig, TUnits>
+  >(tag: TTag, sourceKey: KSource) => IntentBuilder<TConfig, TUnits, TTag, KSource, ExtractSource<TConfig, TUnits, KSource>>
+    = (tag, sourceKey) => new IntentBuilder(sourceKey, tag, this.units);
 }

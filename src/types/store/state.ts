@@ -1,36 +1,33 @@
-import type {EntitiesRecord, ExtractEntity} from "../entity.ts";
 import type {EntityOperationOptions} from "./common.ts";
-import type {RelationsRecord} from "../relation.ts";
 import {IntentBuilder} from "../intent";
+import type {EntityKeys, ExtractEntity, RelationKeys, UnifiedConfig} from "../config.ts";
 
 export interface EntityStoreStateSlice<
-  TEntities extends EntitiesRecord,
-  TRelations extends RelationsRecord
+  TConfig extends UnifiedConfig,
 > {
   __entities: {
-    [K in keyof TEntities]: Map<string, ExtractEntity<TEntities, K>>;
+    [K in EntityKeys<TConfig>]: Map<string, ExtractEntity<TConfig, K>>;
   };
   __relations: {
-    [K in keyof TRelations]: Map<string, Set<string>>;
+    [K in RelationKeys<TConfig>]: Map<string, Set<string>>;
   };
 }
 
 export interface StateActionsSlice<
-  TEntities extends EntitiesRecord,
-  TRelations extends RelationsRecord
+  TConfig extends UnifiedConfig,
 > {
-  load: <KEntity extends keyof TEntities>(
+  load: <KEntity extends EntityKeys<TConfig>>(
     entityKey: KEntity,
-    data: ExtractEntity<TEntities, KEntity>,
-    options?: EntityOperationOptions<TRelations>
+    data: ExtractEntity<TConfig, KEntity>,
+    options?: EntityOperationOptions<TConfig>
   ) => boolean;
   
   clear: () => void;
-  snapshot: () => EntityStoreStateSlice<TEntities, TRelations>;
-  restore: (state: EntityStoreStateSlice<TEntities, TRelations>) => void;
+  snapshot: () => EntityStoreStateSlice<TConfig>;
+  restore: (state: EntityStoreStateSlice<TConfig>) => void;
   
   intentBuilder: <
     TTag extends string,
-    KEntity extends keyof TEntities
-  >(tag: TTag) => IntentBuilder<TEntities, TRelations, {}, TTag, KEntity, KEntity>;
+    KEntity extends EntityKeys<TConfig>
+  >(tag: TTag) => IntentBuilder<TConfig, {}, TTag, { type: "entity", key: KEntity }, KEntity>;
 }

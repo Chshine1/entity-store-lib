@@ -1,44 +1,44 @@
-import type {BaseEntity, EntitiesRecord, ExtractEntity} from "../entity.ts";
+import type {EntityKeys, ExtractEntity, UnifiedConfig} from "../config.ts";
+import type {BaseEntity} from "../core.ts";
 import type {EntityOperationOptions} from "./common.ts";
-import type {RelationsRecord} from "../relation.ts";
+
 
 export interface EntityActionsSlice<
-  TEntities extends EntitiesRecord,
-  TRelations extends RelationsRecord
+  TConfig extends UnifiedConfig,
 > {
-  create: <KEntity extends keyof TEntities>(
+  create: <KEntity extends EntityKeys<TConfig>>(
     entityKey: KEntity,
-    data: Omit<ExtractEntity<TEntities, KEntity>, keyof BaseEntity>,
-    options?: EntityOperationOptions<TRelations>
-  ) => ExtractEntity<TEntities, KEntity>;
+    data: Omit<ExtractEntity<TConfig, KEntity>, keyof BaseEntity>,
+    options?: EntityOperationOptions<TConfig>
+  ) => ExtractEntity<TConfig, KEntity>;
   
-  update: <KEntity extends keyof TEntities>(
+  update: <KEntity extends EntityKeys<TConfig>>(
     entityKey: KEntity,
     id: string,
-    data: Partial<Omit<ExtractEntity<TEntities, KEntity>, keyof BaseEntity>>
-  ) => ExtractEntity<TEntities, KEntity> | undefined;
+    data: Partial<Omit<ExtractEntity<TConfig, KEntity>, keyof BaseEntity>>
+  ) => ExtractEntity<TConfig, KEntity> | undefined;
   
-  remove: <KEntity extends keyof TEntities>(
+  remove: <KEntity extends EntityKeys<TConfig>>(
     entityKey: KEntity,
     id: string
   ) => boolean;
   
-  get: <KEntity extends keyof TEntities>(
+  get: <KEntity extends EntityKeys<TConfig>>(
     entityKey: KEntity,
     id: string
-  ) => ExtractEntity<TEntities, KEntity> | undefined;
+  ) => ExtractEntity<TConfig, KEntity> | undefined;
   
-  getAll: <KEntity extends keyof TEntities>(
+  getAll: <KEntity extends EntityKeys<TConfig>>(
     entityKey: KEntity
-  ) => ExtractEntity<TEntities, KEntity>[];
+  ) => ExtractEntity<TConfig, KEntity>[];
   
-  find: <KEntity extends keyof TEntities>(
+  find: <KEntity extends EntityKeys<TConfig>>(
     entityKey: KEntity,
-    predicate: (entity: ExtractEntity<TEntities, KEntity>) => boolean
-  ) => ExtractEntity<TEntities, KEntity> | undefined;
+    predicate: (entity: ExtractEntity<TConfig, KEntity>) => boolean
+  ) => ExtractEntity<TConfig, KEntity> | undefined;
   
-  findAll: <KEntity extends keyof TEntities>(
+  findAll: <KEntity extends EntityKeys<TConfig>>(
     entityKey: KEntity,
-    predicate: (entity: ExtractEntity<TEntities, KEntity>) => boolean
-  ) => ExtractEntity<TEntities, KEntity>[];
+    predicate: (entity: ExtractEntity<TConfig, KEntity>) => boolean
+  ) => ExtractEntity<TConfig, KEntity>[];
 }

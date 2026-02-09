@@ -1,20 +1,25 @@
-﻿import type {EntitiesRecord, ExtractEntity} from "../entity.ts";
-import type {RelationsRecord, ResolveRelation, SourcedRelations} from "../relation.ts";
+﻿import type {ExtractRelation, SourcedRelations, UnifiedConfig} from "../config.ts";
 import type {AggregationType, QueryOperator, SortDirection} from "./common.ts";
+import type {ExtractSource, IntentSource} from "../source.ts";
 
-export type Operation<TEntities extends EntitiesRecord, TRelations extends RelationsRecord, KEntity extends keyof TEntities> =
-  | WhereOperation<TEntities, KEntity, any, any>
-  | OrderByOperation<TEntities, KEntity, any>
+export type Operation<
+  TConfig extends UnifiedConfig,
+  TUnits extends IntentUnitsRecord,
+  KSource extends IntentSource<TConfig, TUnits>
+> =
+  | WhereOperation<TConfig, TUnits, KSource, any, any>
+  | OrderByOperation<TConfig, TUnits, KSource, any>
   | SkipOperation
   | TakeOperation
   | SelectOperation<any, any>
-  | IncludeOperation<TEntities, TRelations, KEntity, any>
+  | IncludeOperation<TConfig, TUnits, KSource, any>
   | AggregateOperation<any, any, any>;
 
 export type WhereOperation<
-  TEntities extends EntitiesRecord,
-  KEntity extends keyof TEntities,
-  K extends keyof ExtractEntity<TEntities, KEntity>,
+  TConfig extends UnifiedConfig,
+  TUnits extends IntentUnitsRecord,
+  KSource extends IntentSource<TConfig, TUnits>,
+  K extends keyof ExtractSource<TConfig, TUnits, KSource>,
   V
 > = {
   type: 'where';
@@ -24,9 +29,10 @@ export type WhereOperation<
 };
 
 export type OrderByOperation<
-  TEntities extends EntitiesRecord,
-  KEntity extends keyof TEntities,
-  K extends keyof ExtractEntity<TEntities, KEntity>
+  TConfig extends UnifiedConfig,
+  TUnits extends IntentUnitsRecord,
+  KSource extends IntentSource<TConfig, TUnits>,
+  K extends keyof ExtractSource<TConfig, TUnits, KSource>,
 > = {
   type: 'orderBy';
   field: K;
@@ -45,21 +51,21 @@ export type TakeOperation = {
 
 export type SelectOperation<
   TResult,
-  K extends Array<keyof TResult>
+  K extends (keyof TResult)[]
 > = {
   type: 'select';
   fields: K;
 };
 
 export type IncludeOperation<
-  TEntities extends EntitiesRecord,
-  TRelations extends RelationsRecord,
-  KEntity extends keyof TEntities,
-  KRelation extends keyof SourcedRelations<TEntities, TRelations, KEntity>
+  TConfig extends UnifiedConfig,
+  TUnits extends IntentUnitsRecord,
+  KSource extends IntentSource<TConfig, TUnits>,
+  KRelation extends keyof SourcedRelations<TConfig, Extract<KSource, { type: "entity" }>["key"]>
 > = {
   type: 'include';
   relationKey: KRelation;
-  subQuery: IntentUnit<TEntities, TRelations, ResolveRelation<TRelations, TRelations[KRelation]>["targetType"]>;
+  subQuery: IntentUnit<TConfig, TUnits, { type: "entity", key: ExtractRelation<TConfig, KRelation>["targetKey"] }>;
 };
 
 export type AggregateOperation<
@@ -73,12 +79,12 @@ export type AggregateOperation<
 };
 
 export type IntentUnit<
-  TEntities extends EntitiesRecord,
-  TRelations extends RelationsRecord,
-  KEntity extends keyof TEntities,
+  TConfig extends UnifiedConfig,
+  TUnits extends IntentUnitsRecord,
+  KSource extends IntentSource<TConfig, TUnits>,
 > = {
-  entityKey: KEntity;
-  operations: Operation<TEntities, TRelations, KEntity>[];
+  sourceKey: KSource;
+  operations: Operation<TConfig, TUnits, KSource>[];
 };
 
 export type IntentUnitsRecord = Record<string, IntentUnit<any, any, any>>;

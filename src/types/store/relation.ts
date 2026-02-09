@@ -1,25 +1,23 @@
-import type {RelationsRecord, ResolveRelation} from "../relation.ts";
-import type {EntitiesRecord} from "../entity.ts";
+import type {ExtractRelation, RelationKeys, UnifiedConfig} from "../config.ts";
 
 export interface RelationActionsSlice<
-  TEntities extends EntitiesRecord,
-  TRelations extends RelationsRecord
+  TConfig extends UnifiedConfig,
 > {
   // Relation operations
-  relate: <KRelation extends keyof TRelations>(
+  relate: <KRelation extends RelationKeys<TConfig>>(
     relationKey: KRelation,
     sourceId: string,
     targetId: string
   ) => void;
   
-  unrelate: <KRelation extends keyof TRelations>(
+  unrelate: <KRelation extends RelationKeys<TConfig>>(
     relationKey: KRelation,
     sourceId: string,
     targetId?: string // unrelate all if not specified
   ) => void;
   
-  getRelated: <KRelation extends keyof TRelations>(
+  getRelated: <KRelation extends RelationKeys<TConfig>>(
     relationKey: KRelation,
     sourceId: string
-  ) => ResolveRelation<TEntities, TRelations[KRelation]>["targetEntity"][];
+  ) => ExtractRelation<TConfig, KRelation>["targetType"][];
 }

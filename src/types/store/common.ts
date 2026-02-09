@@ -1,12 +1,12 @@
-import type {RelationsRecord} from "../relation.ts";
+import type {RelationKeys, UnifiedConfig} from "../config.ts";
 
 /**
  * Options for entity creation and loading.
  */
 export interface EntityOperationOptions<
-  TRelations extends RelationsRecord
+  TConfig extends UnifiedConfig
 > {
-  relationType?: keyof TRelations;
+  relationType?: RelationKeys<TConfig>;
   sourceId?: string;
 }
 

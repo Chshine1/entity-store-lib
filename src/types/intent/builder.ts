@@ -3,7 +3,6 @@ import type {
   QueryOperator,
   SortDirection,
 } from "./common.ts";
-import type {EntitiesRecord, ExtractEntity} from "../entity.ts";
 import type {
   AggregateOperation,
   IncludeOperation,
@@ -14,38 +13,38 @@ import type {
   SkipOperation, TakeOperation,
   WhereOperation
 } from "./unit.ts";
-import type {RelationsRecord, ResolveRelation} from "../relation.ts";
 import {Intent} from "./intent.ts";
+import type {ExtractRelation, SourcedRelations, UnifiedConfig} from "../config.ts";
+import type {ExtractSource, IntentSource} from "../source.ts";
 
 export class IntentBuilder<
-  TEntities extends EntitiesRecord,
-  TRelations extends RelationsRecord,
+  TConfig extends UnifiedConfig,
   TUnits extends IntentUnitsRecord,
   TTag extends Exclude<string, keyof TUnits>,
-  KEntity extends keyof TEntities,
+  KSource extends IntentSource<TConfig, TUnits>,
   TResult
 > {
-  private operations: Operation<TEntities, TRelations, KEntity>[] = [];
-  private readonly entityKey: KEntity;
+  private operations: Operation<TConfig, TUnits, KSource>[] = [];
+  private readonly sourceKey: KSource;
   private readonly tag: TTag;
   private readonly units: TUnits;
   
   public constructor(
-    entityKey: KEntity,
+    intentSource: KSource,
     tag: TTag,
     units: TUnits
   ) {
-    this.entityKey = entityKey;
+    this.sourceKey = intentSource;
     this.tag = tag;
     this.units = units;
   }
   
-  where<K extends keyof ExtractEntity<TEntities, KEntity>>(
+  where<K extends keyof ExtractSource<TConfig, TUnits, KSource>>(
     field: K,
     operator: QueryOperator,
-    value: ExtractEntity<TEntities, KEntity>[K] | ExtractEntity<TEntities, KEntity>[K][]
-  ): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, TResult> {
-    const operation: WhereOperation<TEntities, KEntity, K, ExtractEntity<TEntities, KEntity>[K]> = {
+    value: ExtractSource<TConfig, TUnits, KSource>[K],
+  ): IntentBuilder<TConfig, TUnits, TTag, KSource, TResult> {
+    const operation: WhereOperation<TConfig, TUnits, KSource, K, ExtractSource<TConfig, TUnits, KSource>[K]> = {
       type: 'where',
       field: field,
       operator,
@@ -55,11 +54,11 @@ export class IntentBuilder<
     return this;
   }
   
-  orderBy<K extends keyof ExtractEntity<TEntities, KEntity>>(
+  orderBy<K extends keyof ExtractSource<TConfig, TUnits, KSource>>(
     field: K,
     direction: SortDirection
-  ): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, TResult> {
-    const operation: OrderByOperation<TEntities, KEntity, K> = {
+  ): IntentBuilder<TConfig, TUnits, TTag, KSource, TResult> {
+    const operation: OrderByOperation<TConfig, TUnits, KSource, K> = {
       type: 'orderBy',
       field: field,
       direction
@@ -68,7 +67,7 @@ export class IntentBuilder<
     return this;
   }
   
-  skip(count: number): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, TResult> {
+  skip(count: number): IntentBuilder<TConfig, TUnits, TTag, KSource, TResult> {
     const operation: SkipOperation = {
       type: 'skip',
       count
@@ -77,7 +76,7 @@ export class IntentBuilder<
     return this;
   }
   
-  take(count: number): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, TResult> {
+  take(count: number): IntentBuilder<TConfig, TUnits, TTag, KSource, TResult> {
     const operation: TakeOperation = {
       type: 'take',
       count
@@ -87,8 +86,8 @@ export class IntentBuilder<
   }
   
   select<K extends Array<keyof TResult>>(
-    fields: [...K]
-  ): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, Pick<TResult, K[number]>
+    fields: [...K],
+  ): IntentBuilder<TConfig, TUnits, TTag, KSource, Pick<TResult, K[number]>
   > {
     const operation: SelectOperation<TResult, K> = {
       type: 'select',
@@ -99,24 +98,23 @@ export class IntentBuilder<
   }
   
   include<
-    KRelation extends keyof TRelations,
+    KRelation extends keyof SourcedRelations<TConfig, Extract<KSource, { type: "entity" }>["key"]>,
     TSubTag extends string,
     TSubResult
   >(
     relationKey: KRelation,
     subQuery: IntentBuilder<
-      TEntities,
-      TRelations,
+      TConfig,
       {},
       TSubTag,
-      ResolveRelation<TEntities, TRelations[KRelation]>["targetType"],
+      Extract<IntentSource<TConfig, any>, { type: "entity", key: ExtractRelation<TConfig, KRelation>["targetKey"] }>,
       TSubResult>
-  ): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, TResult & Record<TSubTag, TSubResult[]>> {
-    const operation: IncludeOperation<TEntities, TRelations, KEntity, KRelation> = {
+  ): IntentBuilder<TConfig, TUnits, TTag, KSource, TResult & Record<TSubTag, TSubResult[]>> {
+    const operation: IncludeOperation<TConfig, TUnits, KSource, KRelation> = {
       type: 'include',
       relationKey,
       subQuery: {
-        entityKey: subQuery.entityKey,
+        sourceKey: subQuery.sourceKey,
         operations: [...subQuery.operations]
       }
     };
@@ -127,7 +125,7 @@ export class IntentBuilder<
   aggregate<K extends keyof TResult, TAggregate extends AggregationType>(
     field: K,
     aggregation: TAggregate,
-  ): IntentBuilder<TEntities, TRelations, TUnits, TTag, KEntity, TResult[K]> {
+  ): IntentBuilder<TConfig, TUnits, TTag, KSource, TResult[K]> {
     const operation: AggregateOperation<TResult, K, TAggregate> = {
       type: 'aggregate',
       aggregation,
@@ -137,9 +135,9 @@ export class IntentBuilder<
     return this;
   }
   
-  build(): Intent<TEntities, TRelations, TUnits & Record<TTag, IntentUnit<TEntities, TRelations, KEntity>>> {
-    const newUnit: IntentUnit<TEntities, TRelations, KEntity> = {
-      entityKey: this.entityKey,
+  build(): Intent<TConfig, TUnits & Record<TTag, IntentUnit<TConfig, TUnits, KSource>>> {
+    const newUnit: IntentUnit<TConfig, TUnits, KSource> = {
+      sourceKey: this.sourceKey,
       operations: this.operations,
     };
     
