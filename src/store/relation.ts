@@ -1,4 +1,4 @@
-import type {ExtractRelation, RelationKeys, UnifiedConfig} from "../types";
+import type {ExtractRelation, RelationKeys, UnifiedConfig} from "@/types";
 
 export interface RelationActionsSlice<
   TConfig extends UnifiedConfig,
@@ -19,5 +19,5 @@ export interface RelationActionsSlice<
   getRelated: <KRelation extends RelationKeys<TConfig>>(
     relationKey: KRelation,
     sourceId: string
-  ) => ExtractRelation<TConfig, KRelation>["targetEntityKey"][];
+  ) => ExtractRelation<TConfig, KRelation>["targetKey"][];
 }

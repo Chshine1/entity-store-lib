@@ -1,5 +1,5 @@
 import type {BatchResults, EntityOperationOptions} from "./common.ts";
-import type {BaseEntity, EntityKeys, ExtractEntity, UnifiedConfig} from "../types";
+import type {BaseEntity, EntityKeys, ExtractEntity, UnifiedConfig} from "@/types";
 
 /**
  * Main entity store interface.

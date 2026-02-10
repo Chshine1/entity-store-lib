@@ -1,5 +1,4 @@
-import type {EntityKeys, ExtractEntity, UnifiedConfig} from "../config";
-import type {ExtractUnitResult, IntentUnitsRecord, UnitKeys} from "./intent-unit.ts";
+import type {EntityKeys, ExtractEntity, ExtractUnitResult, IntentUnitsRecord, UnifiedConfig, UnitKeys} from "@/types";
 
 /**
  * Represents a source for an intent operation.

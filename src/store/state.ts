@@ -1,5 +1,5 @@
 import type {EntityOperationOptions} from "./common.ts";
-import type {IntentUnitBuilder, EntityKeys, ExtractEntity, RelationKeys, UnifiedConfig} from "../types";
+import type {EntityKeys, ExtractEntity, RelationKeys, UnifiedConfig} from "@/types";
 
 export interface EntityStoreStateSlice<
   TConfig extends UnifiedConfig,
@@ -24,9 +24,4 @@ export interface StateActionsSlice<
   clear: () => void;
   snapshot: () => EntityStoreStateSlice<TConfig>;
   restore: (state: EntityStoreStateSlice<TConfig>) => void;
-  
-  intentBuilder: <
-    TTag extends string,
-    KEntity extends EntityKeys<TConfig>
-  >(tag: TTag) => IntentBuilder<TConfig, {}, TTag, { type: "entity", key: KEntity }, KEntity>;
 }

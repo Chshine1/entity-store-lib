@@ -1,5 +1,4 @@
-import type {EntityConfig} from "./entity-config.ts";
-import type {RelationConfig} from "./relation-config.ts";
+import type {EntityConfig, RelationConfig} from "@/types";
 
 /**
  * Combined configuration object that holds all entity and relation definitions.

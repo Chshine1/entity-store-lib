@@ -1,4 +1,4 @@
-import type {RelationKeys, UnifiedConfig} from "../types";
+import type {RelationKeys, UnifiedConfig} from "@/types";
 
 /**
  * Options for entity creation and loading.

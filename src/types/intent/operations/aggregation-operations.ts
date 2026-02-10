@@ -1,4 +1,4 @@
-import type {AggregationType} from "../../core";
+import type {AggregationType} from "@/types";
 
 /**
  * Represents an AGGREGATE operation in a query.

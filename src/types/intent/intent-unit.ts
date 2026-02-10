@@ -1,6 +1,4 @@
-import type {UnifiedConfig} from "../config";
-import type {IntentSource} from "./intent-source.ts";
-import type {Operation} from "./operations";
+import type {IntentSource, Operation, UnifiedConfig} from "@/types";
 
 /**
  * Represents a unit of an intent (a query or operation).

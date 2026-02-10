@@ -1,6 +1,13 @@
-import type {ExtractRelation, SourcedRelations, UnifiedConfig} from "../../config";
-import type {IntentSource, IntentSourceAsEntityKey, IntentSourceFromEntityKey} from "../intent-source.ts";
-import type {IntentUnit, IntentUnitsRecord} from "../intent-unit.ts";
+import type {
+  ExtractRelation,
+  IntentSource,
+  IntentSourceAsEntityKey,
+  IntentSourceFromEntityKey,
+  IntentUnit,
+  IntentUnitsRecord,
+  SourcedRelations,
+  UnifiedConfig
+} from "@/types";
 
 /**
  * Represents a SELECT operation in a query.

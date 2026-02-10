@@ -1,7 +1,11 @@
-import type {UnifiedConfig} from "../../config";
-import type {IntentUnitsRecord} from "../intent-unit.ts";
-import type {ExtractIntentSource, IntentSource} from "../intent-source.ts";
-import type {QueryOperator, SortDirection} from "../../core";
+import type {
+  ExtractIntentSource,
+  IntentSource,
+  IntentUnitsRecord,
+  QueryOperator,
+  SortDirection,
+  UnifiedConfig
+} from "@/types";
 
 /**
  * Represents a WHERE operation in a query.

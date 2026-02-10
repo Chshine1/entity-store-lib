@@ -1,9 +1,15 @@
-import type {IntentUnitsRecord} from "../intent-unit.ts";
-import type {UnifiedConfig} from "../../config";
-import type {IntentSource} from "../intent-source.ts";
-import type {OrderByOperation, SkipOperation, TakeOperation, WhereOperation} from "./base-operations.ts";
-import type {IncludeOperation, SelectOperation} from "./selection-operations.ts";
-import type {AggregateOperation} from "./aggregation-operations.ts";
+import type {
+  AggregateOperation,
+  IncludeOperation,
+  IntentSource,
+  IntentUnitsRecord,
+  OrderByOperation,
+  SelectOperation,
+  SkipOperation,
+  TakeOperation,
+  UnifiedConfig,
+  WhereOperation
+} from "@/types";
 
 export * from "./base-operations.ts";
 export * from "./selection-operations.ts";

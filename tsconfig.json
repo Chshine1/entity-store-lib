@@ -3,15 +3,13 @@
         "target": "ES2022",
         "useDefineForClassFields": true,
         "module": "ESNext",
-        "lib": [
-            "ES2022",
-            "DOM",
-            "DOM.Iterable"
-        ],
-        "types": [
-            "vite/client",
-            "node"
-        ],
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "types": ["vite/client", "node"],
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["src/*"],
+            "~/*": ["*"]
+        },
         "skipLibCheck": true,
         "moduleResolution": "bundler",
         "allowImportingTsExtensions": true,
@@ -39,14 +37,8 @@
         "noPropertyAccessFromIndexSignature": true,
         "resolveJsonModule": false,
         "isolatedModules": true,
-        "jsx": "react",
-        "paths": {
-            "@/*": [
-                "src/*"
-            ]
-        }
+        "jsx": "react"
     },
-    "include": [
-        "src"
-    ]
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist"]
 }

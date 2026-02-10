@@ -1,7 +1,8 @@
 import {IntentUnitBuilder} from "./builders";
 import type {
   EntityKeys,
-  ExtractEntity, ExtractIntentSource,
+  ExtractEntity,
+  ExtractIntentSource,
   ExtractUnitResult,
   IntentSource,
   IntentUnitsRecord,
