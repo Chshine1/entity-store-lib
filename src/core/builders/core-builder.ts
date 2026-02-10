@@ -1,12 +1,6 @@
 ﻿import type {BaseEntity, EntityConfig, RelationConfig} from "@/types";
 import {EntityCore} from "../entity-core.ts";
 
-type AvailableEntityKey<K extends string, TEntityConfigs extends Record<string, EntityConfig<any, any>>>
-  = K extends keyof TEntityConfigs ? never : K;
-
-type AvailableRelationKey<K extends string, TRelationConfigs extends Record<string, RelationConfig<any, any, any>>>
-  = K extends keyof TRelationConfigs ? never : K;
-
 export class UnifiedConfigBuilder<
   TEntityKeys extends string,
   TEntityConfigs extends { [K in TEntityKeys]: EntityConfig<K, any> },
@@ -29,7 +23,7 @@ export class UnifiedConfigBuilder<
     KEntity extends string,
     TEntity extends BaseEntity
   >(
-    config: EntityConfig<AvailableEntityKey<KEntity, TEntityConfigs>, TEntity>
+    config: KEntity extends keyof TEntityConfigs ? never : EntityConfig<KEntity, TEntity>
   ): UnifiedConfigBuilder<
     TEntityKeys | KEntity,
     { [K in TEntityKeys | KEntity]: EntityConfig<K, TEntity> },
@@ -45,11 +39,11 @@ export class UnifiedConfigBuilder<
   }
   
   addRelation<
-    KRelation extends Exclude<string, keyof TRelationConfigs>,
+    KRelation extends string,
     KSource extends keyof TEntityConfigs & string,
     KTarget extends keyof TEntityConfigs & string,
   >(
-    config: RelationConfig<AvailableRelationKey<KRelation, TRelationConfigs>, KSource, KTarget>
+    config: KRelation extends keyof TRelationConfigs ? never : RelationConfig<KRelation, KSource, KTarget>
   ): UnifiedConfigBuilder<
     TEntityKeys,
     TEntityConfigs,
@@ -76,31 +70,31 @@ export class UnifiedConfigBuilder<
 }
 
 export const config = UnifiedConfigBuilder.create()
-  .addEntity({
+  .addEntity<'user', BaseEntity>({
     key: 'user',
     defaultValues: {name: '', email: '', age: 0},
     generateId: () => `user_${Math.random().toString(36).substring(2, 9)}`,
   })
-  .addEntity({
+  .addEntity<'post', BaseEntity>({
     key: 'post',
     defaultValues: {title: '', content: '', authorId: ''},
     generateId: () => `post_${Math.random().toString(36).substring(2, 9)}`,
   })
-  .addEntity({
+  .addEntity<'comment', BaseEntity>({
     key: 'comment',
     defaultValues: {text: '', postId: '', userId: ''},
   })
-  .addRelation({
+  .addRelation<'userPosts', 'user', 'post'>({
     key: 'userPosts',
     sourceEntityKey: 'user',
     targetEntityKey: 'post',
   })
-  .addRelation({
+  .addRelation<'postComments', 'post', 'comment'>({
     key: 'postComments',
     sourceEntityKey: 'post',
     targetEntityKey: 'comment',
   })
-  .addRelation({
+  .addRelation<'userComments', 'user', 'comment'>({
     key: 'userComments',
     sourceEntityKey: 'user',
     targetEntityKey: 'comment'

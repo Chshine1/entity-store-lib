@@ -29,7 +29,7 @@ import {Intent} from "../intent.ts";
 export class IntentUnitBuilder<
   TConfig extends UnifiedConfig,
   TUnits extends IntentUnitsRecord,
-  TTag extends Exclude<string, keyof TUnits>,
+  TTag extends string,
   KSource extends IntentSource<TConfig, TUnits>,
   TResult
 > {
@@ -136,12 +136,13 @@ export class IntentUnitBuilder<
     TSubResult
   >(
     relationKey: KRelation,
-    subQuery: IntentUnitBuilder<
-      TConfig,
-      {},
-      TSubTag,
-      IntentSourceFromEntityKey<TConfig, ExtractRelation<TConfig, KRelation>["targetKey"]>,
-      TSubResult>
+    subQuery: TSubTag extends keyof TResult ? never
+      : IntentUnitBuilder<
+        TConfig,
+        {},
+        TSubTag,
+        IntentSourceFromEntityKey<TConfig, ExtractRelation<TConfig, KRelation>["targetKey"]>,
+        TSubResult>
   ): IntentUnitBuilder<TConfig, TUnits, TTag, KSource, TResult & Record<TSubTag, TSubResult[]>> {
     const operation: IncludeOperation<TConfig, TUnits, KSource, KRelation, TSubResult> = {
       type: 'include',
@@ -152,7 +153,7 @@ export class IntentUnitBuilder<
       }
     };
     this.operations.push(operation);
-    return this;
+    return this as IntentUnitBuilder<TConfig, TUnits, TTag, KSource, TResult & Record<TSubTag, TSubResult[]>>;
   }
   
   /**
@@ -169,7 +170,7 @@ export class IntentUnitBuilder<
       field: field
     };
     this.operations.push(operation);
-    return this;
+    return this as IntentUnitBuilder<TConfig, TUnits, TTag, KSource, TResult[K]>;
   }
   
   /**

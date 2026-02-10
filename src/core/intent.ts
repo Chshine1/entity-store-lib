@@ -29,9 +29,9 @@ export class Intent<
    * Creates an IntentBuilder starting from a specific entity.
    */
   attachEntityIntent<
-    TTag extends Exclude<string, UnitKeys<TUnits>>,
+    TTag extends string,
     KEntity extends EntityKeys<TConfig>
-  >(tag: TTag, entityKey: KEntity): IntentUnitBuilder<TConfig, TUnits, TTag, {
+  >(tag: TTag extends UnitKeys<TUnits> ? never : TTag, entityKey: KEntity): IntentUnitBuilder<TConfig, TUnits, TTag, {
     type: "entity",
     key: KEntity
   }, ExtractEntity<TConfig, KEntity>> {
@@ -43,9 +43,9 @@ export class Intent<
    * Creates an IntentBuilder starting from a previously defined unit.
    */
   attachUnitIntent<
-    TTag extends Exclude<string, UnitKeys<TUnits>>,
+    TTag extends string,
     KUnit extends UnitKeys<TUnits>
-  >(tag: TTag, unitTag: KUnit): IntentUnitBuilder<TConfig, TUnits, TTag, {
+  >(tag: TTag extends UnitKeys<TUnits> ? never : TTag, unitTag: KUnit): IntentUnitBuilder<TConfig, TUnits, TTag, {
     type: "unit",
     key: KUnit
   }, ExtractUnitResult<TUnits, KUnit>> {
@@ -57,9 +57,9 @@ export class Intent<
    * Internal helper for creating IntentBuilders.
    */
   private attach<
-    TTag extends Exclude<string, keyof TUnits>,
+    TTag extends string,
     KSource extends IntentSource<TConfig, TUnits>
-  >(tag: TTag, sourceKey: KSource): IntentUnitBuilder<TConfig, TUnits, TTag, KSource, ExtractIntentSource<TConfig, TUnits, KSource>> {
+  >(tag: TTag extends UnitKeys<TUnits> ? never : TTag, sourceKey: KSource): IntentUnitBuilder<TConfig, TUnits, TTag, KSource, ExtractIntentSource<TConfig, TUnits, KSource>> {
     return new IntentUnitBuilder(sourceKey, tag, this.units);
   }
 }
