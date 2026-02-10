@@ -1,23 +1,26 @@
-import type {AggregationType, QueryOperator, SortDirection,} from "../core";
 import type {
   AggregateOperation,
-  IncludeOperation,
-  Operation,
-  OrderByOperation,
-  SelectOperation,
-  SkipOperation,
-  TakeOperation,
-  WhereOperation
-} from "./operations";
-import {Intent} from "./intent-class.ts";
-import type {ExtractRelation, SourcedRelations, UnifiedConfig} from "../config";
-import type {
+  AggregationType,
   ExtractIntentSource,
+  ExtractRelation,
+  IncludeOperation,
   IntentSource,
   IntentSourceAsEntityKey,
-  IntentSourceFromEntityKey
-} from "./intent-source.ts";
-import type {IntentUnit, IntentUnitsRecord} from "./intent-unit.ts";
+  IntentSourceFromEntityKey,
+  IntentUnit,
+  IntentUnitsRecord,
+  Operation,
+  OrderByOperation,
+  QueryOperator,
+  SelectOperation,
+  SkipOperation,
+  SortDirection,
+  SourcedRelations,
+  TakeOperation,
+  UnifiedConfig,
+  WhereOperation,
+} from "@/types";
+import {Intent} from "@/types";
 
 /**
  * Builder class for constructing intent operations.
