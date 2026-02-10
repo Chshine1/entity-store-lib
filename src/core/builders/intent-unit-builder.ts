@@ -20,13 +20,13 @@ import type {
   UnifiedConfig,
   WhereOperation,
 } from "@/types";
-import {Intent} from "@/types";
+import {Intent} from "../intent.ts";
 
 /**
  * Builder class for constructing intent operations.
  * Provides a fluent API for building complex queries step by step.
  */
-export class IntentBuilder<
+export class IntentUnitBuilder<
   TConfig extends UnifiedConfig,
   TUnits extends IntentUnitsRecord,
   TTag extends Exclude<string, keyof TUnits>,
@@ -56,7 +56,7 @@ export class IntentBuilder<
     field: K,
     operator: QueryOperator,
     value: ExtractIntentSource<TConfig, TUnits, KSource>[K],
-  ): IntentBuilder<TConfig, TUnits, TTag, KSource, TResult> {
+  ): IntentUnitBuilder<TConfig, TUnits, TTag, KSource, TResult> {
     const operation: WhereOperation<TConfig, TUnits, KSource, K, ExtractIntentSource<TConfig, TUnits, KSource>[K]> = {
       type: 'where',
       field: field,
@@ -74,7 +74,7 @@ export class IntentBuilder<
   orderBy<K extends keyof ExtractIntentSource<TConfig, TUnits, KSource>>(
     field: K,
     direction: SortDirection
-  ): IntentBuilder<TConfig, TUnits, TTag, KSource, TResult> {
+  ): IntentUnitBuilder<TConfig, TUnits, TTag, KSource, TResult> {
     const operation: OrderByOperation<TConfig, TUnits, KSource, K> = {
       type: 'orderBy',
       field: field,
@@ -88,7 +88,7 @@ export class IntentBuilder<
    * Adds a SKIP clause to the query.
    * Skips the specified number of results.
    */
-  skip(count: number): IntentBuilder<TConfig, TUnits, TTag, KSource, TResult> {
+  skip(count: number): IntentUnitBuilder<TConfig, TUnits, TTag, KSource, TResult> {
     const operation: SkipOperation = {
       type: 'skip',
       count
@@ -101,7 +101,7 @@ export class IntentBuilder<
    * Adds a TAKE clause to the query.
    * Limits the number of results returned.
    */
-  take(count: number): IntentBuilder<TConfig, TUnits, TTag, KSource, TResult> {
+  take(count: number): IntentUnitBuilder<TConfig, TUnits, TTag, KSource, TResult> {
     const operation: TakeOperation = {
       type: 'take',
       count
@@ -116,7 +116,7 @@ export class IntentBuilder<
    */
   select<K extends Array<keyof TResult>>(
     fields: [...K],
-  ): IntentBuilder<TConfig, TUnits, TTag, KSource, Pick<TResult, K[number]>
+  ): IntentUnitBuilder<TConfig, TUnits, TTag, KSource, Pick<TResult, K[number]>
   > {
     const operation: SelectOperation<TResult, K> = {
       type: 'select',
@@ -136,13 +136,13 @@ export class IntentBuilder<
     TSubResult
   >(
     relationKey: KRelation,
-    subQuery: IntentBuilder<
+    subQuery: IntentUnitBuilder<
       TConfig,
       {},
       TSubTag,
       IntentSourceFromEntityKey<TConfig, ExtractRelation<TConfig, KRelation>["targetKey"]>,
       TSubResult>
-  ): IntentBuilder<TConfig, TUnits, TTag, KSource, TResult & Record<TSubTag, TSubResult[]>> {
+  ): IntentUnitBuilder<TConfig, TUnits, TTag, KSource, TResult & Record<TSubTag, TSubResult[]>> {
     const operation: IncludeOperation<TConfig, TUnits, KSource, KRelation, TSubResult> = {
       type: 'include',
       relationKey,
@@ -162,7 +162,7 @@ export class IntentBuilder<
   aggregate<K extends keyof TResult, TAggregate extends AggregationType>(
     field: K,
     aggregation: TAggregate,
-  ): IntentBuilder<TConfig, TUnits, TTag, KSource, TResult[K]> {
+  ): IntentUnitBuilder<TConfig, TUnits, TTag, KSource, TResult[K]> {
     const operation: AggregateOperation<TResult, K, TAggregate> = {
       type: 'aggregate',
       aggregation,

@@ -1,4 +1,5 @@
-﻿import type {BaseEntity, EntityConfig, RelationConfig, UnifiedConfig} from "@/types";
+﻿import type {BaseEntity, EntityConfig, RelationConfig} from "@/types";
+import {EntityCore} from "../entity-core.ts";
 
 type AvailableEntityKey<K extends string, TEntityConfigs extends Record<string, EntityConfig<any, any>>>
   = K extends keyof TEntityConfigs ? never : K;
@@ -63,11 +64,14 @@ export class UnifiedConfigBuilder<
     return new UnifiedConfigBuilder(this.entityConfigs, relationConfigs);
   }
   
-  build(): UnifiedConfig {
-    return {
+  build(): EntityCore<{
+    entities: TEntityConfigs;
+    relations: TRelationConfigs;
+  }> {
+    return new EntityCore({
       entities: this.entityConfigs,
-      relations: this.relationConfigs,
-    };
+      relations: this.relationConfigs
+    });
   }
 }
 
