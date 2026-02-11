@@ -15,13 +15,13 @@ export type UnifiedConfig = {
  * Extracts the entity keys from a configuration object.
  * Used to get the available entity types from a config.
  */
-export type EntityKeys<TConfig extends UnifiedConfig> = keyof TConfig["entities"];
+export type EntityKeys<TConfig extends UnifiedConfig> = (keyof TConfig["entities"]) & string;
 
 /**
  * Extracts the relation keys from a configuration object.
  * Used to get the available relation types from a config.
  */
-export type RelationKeys<TConfig extends UnifiedConfig> = keyof TConfig["relations"];
+export type RelationKeys<TConfig extends UnifiedConfig> = (keyof TConfig["relations"]) & string;
 
 /**
  * Extracts the entity type for a given entity key from a configuration.

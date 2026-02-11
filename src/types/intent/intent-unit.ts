@@ -21,7 +21,7 @@ export type IntentUnit<
  */
 export type IntentUnitsRecord = Record<string, IntentUnit<any, any, any, any>>;
 
-export type UnitKeys<TUnits extends IntentUnitsRecord> = keyof TUnits;
+export type UnitKeys<TUnits extends IntentUnitsRecord> = (keyof TUnits) & string;
 
 /**
  * Extracts the result type from a unit in an IntentUnitsRecord.
