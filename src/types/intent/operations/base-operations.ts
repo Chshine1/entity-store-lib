@@ -29,10 +29,8 @@ export type WhereOperation<
  * Sorts records based on a field and direction.
  */
 export type OrderByOperation<
-  TConfig extends UnifiedConfig,
-  TUnits extends IntentUnitsRecord,
-  KSource extends IntentSource<TConfig, TUnits>,
-  K extends keyof ExtractIntentSource<TConfig, TUnits, KSource>,
+  TResult,
+  K extends keyof TResult,
 > = {
   type: 'orderBy';
   field: K;

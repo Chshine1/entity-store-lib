@@ -1,8 +1,8 @@
-﻿import {defineConfig} from 'vite';
+﻿import {defineConfig, type UserConfig} from 'vite';
 import path from 'path';
 import dts from 'vite-plugin-dts';
 
-export default defineConfig({
+const config: UserConfig = {
   build: {
     lib: {
       entry: {
@@ -20,7 +20,7 @@ export default defineConfig({
           'react': 'React',
           'react-dom': 'ReactDOM',
         },
-        interop: 'auto'
+        interop: 'auto',
       },
     },
     sourcemap: true,
@@ -40,4 +40,6 @@ export default defineConfig({
       'react-dom': path.resolve(__dirname, './node_modules/react-dom')
     }
   }
-});
+};
+
+export default defineConfig(config);

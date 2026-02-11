@@ -71,11 +71,11 @@ export class IntentUnitBuilder<
    * Adds an ORDER BY clause to the query.
    * Sorts results based on a field and direction.
    */
-  orderBy<K extends keyof ExtractIntentSource<TConfig, TUnits, KSource>>(
+  orderBy<K extends keyof TResult>(
     field: K,
     direction: SortDirection
   ): IntentUnitBuilder<TConfig, TUnits, TTag, KSource, TResult> {
-    const operation: OrderByOperation<TConfig, TUnits, KSource, K> = {
+    const operation: OrderByOperation<TResult, K> = {
       type: 'orderBy',
       field: field,
       direction
@@ -114,7 +114,7 @@ export class IntentUnitBuilder<
    * Adds a SELECT clause to the query.
    * Specifies which fields to include in the result.
    */
-  select<K extends Array<keyof TResult>>(
+  select<K extends (keyof TResult)[]>(
     fields: [...K],
   ): IntentUnitBuilder<TConfig, TUnits, TTag, KSource, Pick<TResult, K[number]>
   > {
