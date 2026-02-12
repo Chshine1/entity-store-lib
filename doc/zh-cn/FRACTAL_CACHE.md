@@ -34,6 +34,37 @@ flowchart LR
     NetworkAdapter --> Reconciler
 ```
 
+```text
+[ 组件 ] 
+   │
+   ▼
+[ Intent ]  (entityType, where, orderBy, skip, take, include)
+   │
+   ▼
+[ IntentNormalizer ]   ←────┐
+   │                        │ 依赖 IQueryStore
+   ├─ 提取占位符，生成 whereTemplate 和 parameters
+   ├─ 计算 definitionId = computeDefinitionId(...)
+   ├─ 计算 paramHash = computeParamHash(parameters)
+   ├─ 从 IQueryStore 获取/创建 QueryDefinition
+   └─ 从 IQueryStore 获取/创建 QueryBinding
+   │
+   ▼
+[ DiffEngine ] 
+   │ 输入：Intent, QueryBinding
+   │ 输出：FetchPlan (主获取 + 富化获取 + 关系获取)
+   │
+   ▼
+[ NetworkAdapter ]  (抽象接口，可对接 REST/GraphQL)
+   │
+   ▼
+[ Reconciler ] 
+   ├─ 更新 QueryBinding：mergeInterval, indexToId, isExhausted
+   ├─ 更新 NEP：合并 data 和 fieldMask
+   ├─ 更新父实体的 relations 数组（同步 indexToId 视图）
+   └─ 递归处理 include 子查询（调用 IntentNormalizer + DiffEngine）
+```
+
 ### 接口定义（TypeScript）
 
 ```typescript
