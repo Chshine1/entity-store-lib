@@ -1,9 +1,34 @@
-﻿import type {DataRequest, FetchPlan, IDiffEngine} from "@/fractal-cache/types/diff-engine/abstractions.ts";
+import type {
+  DataRequest,
+  FetchPlan,
+  IDiffEngine,
+  FetchContext,
+  DiffEngineConfig
+} from "@/fractal-cache/types/diff-engine/types.ts";
 import type {IQueryBindingStore} from "@/fractal-cache/types/query-binding-store.ts";
 import type {Intent} from "@/fractal-cache/types/intent-parser.ts";
 import type {INormalizedEntityPool} from "@/fractal-cache/types/normalized-entity-pool.ts";
-import type {DiffEngineConfig} from "@/fractal-cache/types/diff-engine/config.ts";
-import type {FetchContext} from "@/fractal-cache/types/diff-engine/fetch-context.ts";
+
+/**
+ * Default implementations of utility functions that are not yet implemented.
+ * These will throw errors to indicate they need to be properly implemented.
+ */
+
+function computeDefinitionId(_entityType: string, _orderBy: any[], _whereTemplate: any): string {
+  throw new Error("computeDefinitionId is not implemented yet");
+}
+
+function computeParamHash(_params: any): string {
+  throw new Error("computeParamHash is not implemented yet");
+}
+
+function extractTemplate(_where: any): any {
+  throw new Error("extractTemplate is not implemented yet");
+}
+
+function extractParams(_where: any): any {
+  throw new Error("extractParams is not implemented yet");
+}
 
 export class DiffEngine implements IDiffEngine {
   private readonly config: DiffEngineConfig;
@@ -29,13 +54,13 @@ export class DiffEngine implements IDiffEngine {
       }
     };
     
-    // 1. 水平检查
+    // Step 1: Horizontal check
     const horizontalResult = this.config.horizontalCheck.check(intent, this.bindingStore);
     
-    // 获取窗口内已缓存的实体ID（非null）
+    // Get cached entity IDs from the window (non-null values)
     const cachedIds = horizontalResult.windowIds.filter(id => id !== null) as string[];
     
-    // 2. 垂直检查
+    // Step 2: Vertical check
     const missingMap = this.config.verticalCheck.check(
       intent.entityType,
       cachedIds,
@@ -43,26 +68,29 @@ export class DiffEngine implements IDiffEngine {
       this.entityPool
     );
     
-    // 3. 生成分页请求
+    // Step 3: Generate pagination requests
     const paginationRequests = this.config.paginationRequest.generateRequests(
       horizontalResult.missingIntervals,
       intent,
       context
     );
     
-    // 4. 生成字段补全请求
+    // Step 4: Generate field completion requests
     const fieldRequests = this.config.fieldFetch.generateRequests(
       missingMap,
       intent.entityType,
       context
     );
     
-    // 5. 生成关系请求
+    // Step 5: Generate relation requests
     let relationRequests: DataRequest[] = [];
     if (intent.include) {
       for (const rel of intent.include) {
-        // 父ID列表 = 当前窗口内所有已缓存的实体ID（注意：如果窗口有缺失，可能只有部分父实体，但关系查询通常基于已有的父实体）
-        // 更精确的做法可能是从 entityPool 中获取所有可能作为父实体的ID，但为简化，就用 cachedIds
+        // Parent ID list = all cached entity IDs in the current window
+        // Note: If there are missing IDs in the window, there may be only partial parent entities,
+        // but relationship queries typically rely on existing parent entities
+        // A more precise approach might be to get all possible parent entity IDs from the entityPool,
+        // but for simplicity, we use cachedIds
         const relReqs = this.config.relationRequest.generateRequests(
           rel,
           cachedIds,
@@ -73,7 +101,7 @@ export class DiffEngine implements IDiffEngine {
       }
     }
     
-    // 6. 去重合并
+    // Step 6: Deduplicate and merge
     let allRequests = [...paginationRequests, ...fieldRequests, ...relationRequests];
     if (this.config.requestDeduplication) {
       allRequests = this.config.requestDeduplication.deduplicate(allRequests);

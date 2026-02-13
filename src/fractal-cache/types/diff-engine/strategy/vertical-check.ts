@@ -1,4 +1,5 @@
-﻿import type {INormalizedEntityPool} from "@/fractal-cache/types/normalized-entity-pool.ts";
+import type {INormalizedEntityPool} from "@/fractal-cache/types/normalized-entity-pool.ts";
+import type {FieldMissingMap} from "@/fractal-cache/types/diff-engine/types.ts";
 
 export interface VerticalCheckStrategy {
   check(

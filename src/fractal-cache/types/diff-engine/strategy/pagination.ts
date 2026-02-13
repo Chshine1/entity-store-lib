@@ -1,6 +1,5 @@
-﻿import type {FetchContext} from "@/fractal-cache/types/diff-engine/fetch-context.ts";
-import type {Intent} from "@/fractal-cache/types/intent-parser.ts";
-import type {DataRequest} from "@/fractal-cache/types/diff-engine/abstractions.ts";
+﻿import type {Intent} from "@/fractal-cache/types/intent-parser.ts";
+import type {DataRequest, FetchContext} from "@/fractal-cache/types/diff-engine";
 
 export interface PaginationRequestStrategy {
   generateRequests(

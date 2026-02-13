@@ -1,5 +1,4 @@
-﻿import type {FetchContext} from "@/fractal-cache/types/diff-engine/fetch-context.ts";
-import type {DataRequest} from "@/fractal-cache/types/diff-engine/abstractions.ts";
+import type {DataRequest, FetchContext, FieldMissingMap} from "@/fractal-cache/types/diff-engine/types.ts";
 
 export interface FieldFetchStrategy {
   generateRequests(
