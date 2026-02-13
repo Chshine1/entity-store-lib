@@ -1,35 +1,24 @@
 import type {
   DataRequest,
-  FetchPlan,
-  IDiffEngine,
+  DiffEngineConfig,
   FetchContext,
-  DiffEngineConfig
+  FetchPlan,
+  IDiffEngine
 } from "@/fractal-cache/types/diff-engine/types.ts";
 import type {IQueryBindingStore} from "@/fractal-cache/types/query-binding-store.ts";
 import type {Intent} from "@/fractal-cache/types/intent-parser.ts";
 import type {INormalizedEntityPool} from "@/fractal-cache/types/normalized-entity-pool.ts";
 
 /**
- * Default implementations of utility functions that are not yet implemented.
- * These will throw errors to indicate they need to be properly implemented.
+ * Core DiffEngine implementation that coordinates different strategies to compute fetch plans.
+ * The engine follows a fixed workflow:
+ * 1. Horizontal check -> Gets cached IDs and missing intervals in the target window
+ * 2. Vertical check -> Checks field completeness for cached entities
+ * 3. Generate pagination requests -> For missing intervals
+ * 4. Generate field completion requests -> For missing fields
+ * 5. Generate relation requests -> For included relations
+ * 6. Deduplicate and merge -> Combine similar requests
  */
-
-function computeDefinitionId(_entityType: string, _orderBy: any[], _whereTemplate: any): string {
-  throw new Error("computeDefinitionId is not implemented yet");
-}
-
-function computeParamHash(_params: any): string {
-  throw new Error("computeParamHash is not implemented yet");
-}
-
-function extractTemplate(_where: any): any {
-  throw new Error("extractTemplate is not implemented yet");
-}
-
-function extractParams(_where: any): any {
-  throw new Error("extractParams is not implemented yet");
-}
-
 export class DiffEngine implements IDiffEngine {
   private readonly config: DiffEngineConfig;
   private readonly entityPool: INormalizedEntityPool;
@@ -41,6 +30,12 @@ export class DiffEngine implements IDiffEngine {
     this.bindingStore = bindingStore;
   }
   
+  /**
+   * Computes a fetch plan based on the provided intent and current cache state.
+   * This method orchestrates the various strategies to determine what data needs to be fetched.
+   * @param intent - The intent specifying what data to fetch
+   * @returns A fetch plan containing all necessary requests
+   */
   computeFetchPlan(intent: Intent): FetchPlan {
     const context: FetchContext = {
       intent,
@@ -109,4 +104,25 @@ export class DiffEngine implements IDiffEngine {
     
     return {requests: allRequests};
   }
+}
+
+/**
+ * Default implementations of utility functions that are not yet implemented.
+ * These will throw errors to indicate they need to be properly implemented.
+ */
+
+function computeDefinitionId(_entityType: string, _orderBy: any[], _whereTemplate: any): string {
+  throw new Error("computeDefinitionId is not implemented yet");
+}
+
+function computeParamHash(_params: any): string {
+  throw new Error("computeParamHash is not implemented yet");
+}
+
+function extractTemplate(_where: any): any {
+  throw new Error("extractTemplate is not implemented yet");
+}
+
+function extractParams(_where: any): any {
+  throw new Error("extractParams is not implemented yet");
 }

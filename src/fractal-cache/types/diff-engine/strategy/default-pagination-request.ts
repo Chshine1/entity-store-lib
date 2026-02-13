@@ -1,24 +1,50 @@
 import type {PaginationRequestStrategy} from "@/fractal-cache/types/diff-engine/strategy/pagination.ts";
 import type {Intent} from "@/fractal-cache/types/intent-parser.ts";
-import type {DataRequest, FetchContext} from "@/fractal-cache/types/diff-engine";
+import type {DataRequest} from "@/fractal-cache/types/diff-engine";
 
+/**
+ * Configuration options for pagination request strategy.
+ */
 interface PaginationRequestConfig {
+  /**
+   * Strategy for merging intervals: 'none' keeps all separate, 'adjacent' merges touching intervals,
+   * 'all' combines all into one request.
+   */
   intervalMergeStrategy: 'none' | 'adjacent' | 'all';
+  /**
+   * Whether to allow fetching beyond the requested window boundaries.
+   */
   allowOverfetch: boolean;
+  /**
+   * Maximum number of items to take in a single pagination request.
+   */
   maxTakePerRequest: number;
 }
 
+/**
+ * Default implementation of PaginationRequestStrategy.
+ * Creates DataRequest objects to fetch missing intervals in paginated lists based on configuration options.
+ */
 export class DefaultPaginationRequestStrategy implements PaginationRequestStrategy {
   private readonly config: PaginationRequestConfig;
   
+  /**
+   * Creates a new instance with the given configuration.
+   * @param config - Configuration options for the pagination request strategy
+   */
   constructor(config: PaginationRequestConfig) {
     this.config = config;
   }
   
+  /**
+   * Generates pagination requests for the given missing intervals.
+   * @param missingIntervals - Array of [start, end] intervals that need to be fetched
+   * @param intent - The original intent for the query
+   * @returns Array of DataRequest objects for pagination
+   */
   generateRequests(
     missingIntervals: Array<[number, number]>,
     intent: Intent,
-    _context: FetchContext
   ): DataRequest[] {
     if (missingIntervals.length === 0) {
       return [];
@@ -69,10 +95,10 @@ export class DefaultPaginationRequestStrategy implements PaginationRequestStrate
         // Single request for this interval
         const request: DataRequest = {
           entityType: intent.entityType,
-          mode: { type: 'pagination', skip: start, take: intervalLength },
+          mode: {type: 'pagination', skip: start, take: intervalLength},
           where: intent.where,
           orderBy: intent.orderBy,
-          ...(intent.select && { select: intent.select })
+          ...(intent.select && {select: intent.select})
         };
         
         requests.push(request);
@@ -84,10 +110,10 @@ export class DefaultPaginationRequestStrategy implements PaginationRequestStrate
           
           const request: DataRequest = {
             entityType: intent.entityType,
-            mode: { type: 'pagination', skip: currentStart, take: currentTake },
+            mode: {type: 'pagination', skip: currentStart, take: currentTake},
             where: intent.where,
             orderBy: intent.orderBy,
-            ...(intent.select && { select: intent.select })
+            ...(intent.select && {select: intent.select})
           };
           
           requests.push(request);
@@ -100,6 +126,12 @@ export class DefaultPaginationRequestStrategy implements PaginationRequestStrate
     return requests;
   }
   
+  /**
+   * Merges adjacent intervals to reduce the number of requests.
+   * @param intervals - Array of [start, end] intervals to merge
+   * @returns Array of merged [start, end] intervals
+   * @private
+   */
   private mergeAdjacentIntervals(intervals: Array<[number, number]>): Array<[number, number]> {
     if (intervals.length <= 1) return intervals;
     

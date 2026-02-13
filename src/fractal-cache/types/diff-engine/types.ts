@@ -4,7 +4,10 @@ import type {IQueryBindingStore} from "@/fractal-cache/types/query-binding-store
 import type {FilterAST, OrderSpec} from "@/fractal-cache/core.ts";
 import type {
   FieldFetchStrategy,
-  HorizontalCheckStrategy, PaginationRequestStrategy, RelationRequestStrategy, RequestDeduplicationStrategy,
+  HorizontalCheckStrategy,
+  PaginationRequestStrategy,
+  RelationRequestStrategy,
+  RequestDeduplicationStrategy,
   VerticalCheckStrategy
 } from "@/fractal-cache/types/diff-engine/strategy";
 

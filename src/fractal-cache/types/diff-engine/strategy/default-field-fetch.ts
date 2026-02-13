@@ -1,20 +1,52 @@
 import type {FieldFetchStrategy} from "@/fractal-cache/types/diff-engine/strategy/field-fetch.ts";
 import type {DataRequest, FetchContext, FieldMissingMap} from "@/fractal-cache/types/diff-engine/types.ts";
 
+/**
+ * Configuration options for field fetch strategy.
+ */
 interface FieldFetchConfig {
+  /**
+   * Threshold for determining bulk fields. Fields missing in more than this proportion
+   * of entities will be grouped into bulk requests.
+   */
   batchThreshold: number;
+  /**
+   * Maximum number of IDs in a single batch request.
+   */
   maxBatchSize: number;
+  /**
+   * Strategy for handling low-frequency fields: 'per-entity' creates individual requests
+   * for each entity, 'merge-all' combines all low-frequency fields into one request.
+   */
   lowFrequencyStrategy: 'per-entity' | 'merge-all';
+  /**
+   * Whether to prefer ID-based requests for field completion.
+   */
   preferIdRequest: boolean;
 }
 
+/**
+ * Default implementation of FieldFetchStrategy.
+ * Generates DataRequest objects to fetch missing fields for entities based on configuration options.
+ */
 export class DefaultFieldFetchStrategy implements FieldFetchStrategy {
   private readonly config: FieldFetchConfig;
   
+  /**
+   * Creates a new instance with the given configuration.
+   * @param config - Configuration options for the field fetch strategy
+   */
   constructor(config: FieldFetchConfig) {
     this.config = config;
   }
   
+  /**
+   * Generates field completion requests based on the field missing map.
+   * @param missingMap - Map of entity IDs to sets of missing fields
+   * @param entityType - The type of entities needing field completion
+   * @param context - The fetch context containing intent and utility functions
+   * @returns Array of DataRequest objects for field completion
+   */
   generateRequests(
     missingMap: FieldMissingMap,
     entityType: string,
@@ -69,7 +101,7 @@ export class DefaultFieldFetchStrategy implements FieldFetchStrategy {
           
           const request: DataRequest = {
             entityType,
-            mode: { type: 'id', ids: batch },
+            mode: {type: 'id', ids: batch},
             where: context.intent.where,
             orderBy: context.intent.orderBy,
             select: new Set(fields)
@@ -88,7 +120,7 @@ export class DefaultFieldFetchStrategy implements FieldFetchStrategy {
         if (lowFreqFields.length > 0) {
           const request: DataRequest = {
             entityType,
-            mode: { type: 'id', ids: [id] },
+            mode: {type: 'id', ids: [id]},
             where: context.intent.where,
             orderBy: context.intent.orderBy,
             select: new Set(lowFreqFields)
@@ -119,7 +151,7 @@ export class DefaultFieldFetchStrategy implements FieldFetchStrategy {
           
           const request: DataRequest = {
             entityType,
-            mode: { type: 'id', ids: batch },
+            mode: {type: 'id', ids: batch},
             where: context.intent.where,
             orderBy: context.intent.orderBy,
             select: allLowFreqFields
