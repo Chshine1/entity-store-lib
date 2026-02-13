@@ -2,9 +2,9 @@
 
 export interface Intent<T = any> {
   entityType: string;
-  select?: Set<keyof T>;
+  select?: Set<keyof T & string>;
   where: FilterAST;
-  orderBy: OrderSpec;
+  orderBy: OrderSpec[];
   skip: number;
   take: number;
   include?: RelationIntent[];
