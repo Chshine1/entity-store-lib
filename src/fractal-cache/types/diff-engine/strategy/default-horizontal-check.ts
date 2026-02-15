@@ -1,4 +1,4 @@
-import type {Intent} from "@/fractal-cache/types/intent-parser.ts";
+import type {NormalizedIntent} from "@/fractal-cache/types/intent-parser.ts";
 import type {HorizontalCheckStrategy} from "@/fractal-cache/types/diff-engine/strategy/horizontal-check.ts";
 import type {HorizontalResult} from "@/fractal-cache/types/diff-engine";
 
@@ -43,7 +43,7 @@ export class DefaultHorizontalCheck implements HorizontalCheckStrategy {
    * @param intent - The intent specifying the target window and query parameters
    * @returns HorizontalResult containing cached IDs, missing intervals, and fetch flags
    */
-  check(intent: Intent): HorizontalResult {
+  check(intent: NormalizedIntent): HorizontalResult {
     // If cache is disabled, return full missing interval
     if (!this.config.useCache) {
       return {

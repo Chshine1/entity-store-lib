@@ -1,4 +1,4 @@
-﻿import type {Intent} from "@/fractal-cache/types/intent-parser.ts";
+﻿import type {NormalizedIntent} from "@/fractal-cache/types/intent-parser.ts";
 import type {QueryBinding} from "@/fractal-cache/types/query-binding-store.ts";
 
 export type FilterAST = Record<string, unknown>;
@@ -52,7 +52,7 @@ export interface INetworkAdapter {
 // ---------- 合并器接口 ----------
 export interface IReconciler {
   /** 合并ID列表响应，更新QSS及NEP */
-  reconcileIds(response: IdListResponse, originalIntent: Intent): void;
+  reconcileIds(response: IdListResponse, originalIntent: NormalizedIntent): void;
   
   /** 合并实体数据响应，更新NEP */
   reconcileEntities(response: EntityData[]): void;

@@ -1,4 +1,4 @@
-import type {Intent} from "@/fractal-cache/types/intent-parser.ts";
+import type {NormalizedIntent} from "@/fractal-cache/types/intent-parser.ts";
 import type {INormalizedEntityPool} from "@/fractal-cache/types/normalized-entity-pool.ts";
 import type {IQueryBindingStore} from "@/fractal-cache/types/query-binding-store.ts";
 import type {FilterAST, OrderSpec} from "@/fractal-cache/core.ts";
@@ -26,7 +26,7 @@ export interface FetchContext {
   /**
    * The original intent for which the fetch plan is being computed.
    */
-  intent: Intent;
+  intent: NormalizedIntent;
   
   /**
    * The entity pool for accessing cached entity records.
@@ -139,7 +139,7 @@ export interface HorizontalResult {
  * Compares an Intent against the current cache (NEP + QBS) and produces a minimal FetchPlan.
  */
 export interface IDiffEngine {
-  computeFetchPlan(intent: Intent): FetchPlan;
+  computeFetchPlan(intent: NormalizedIntent): FetchPlan;
 }
 
 /**

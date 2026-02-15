@@ -1,4 +1,5 @@
 import {IntentUnitBuilder} from "./builders";
+import {FractalCacheIntentBuilder} from "@/core/builders";
 import type {
   EntityKeys,
   ExtractEntity,
@@ -61,5 +62,31 @@ export class Intent<
     KSource extends IntentSource<TConfig, TUnits>
   >(tag: TTag extends UnitKeys<TUnits> ? never : TTag, sourceKey: KSource): IntentUnitBuilder<TConfig, TUnits, TTag, KSource, ExtractIntentSource<TConfig, TUnits, KSource>> {
     return new IntentUnitBuilder(sourceKey, tag, this.units);
+  }
+  
+  /**
+   * Attaches a new operation to an entity specifically for fractal cache.
+   * Creates a FractalCacheIntentBuilder starting from a specific entity.
+   * This builder enforces constraints that match fractal cache capabilities.
+   */
+  attachEntityIntentForFractalCache<
+    TTag extends string,
+    KEntity extends EntityKeys<TConfig>
+  >(tag: TTag extends UnitKeys<TUnits> ? never : TTag, entityKey: KEntity, config: TConfig): FractalCacheIntentBuilder<TConfig, TUnits, TTag, {
+    type: "entity",
+    key: KEntity
+  }, ExtractEntity<TConfig, KEntity>> {
+    return this.attachFractalCache(tag, {type: "entity", key: entityKey}, config);
+  }
+  
+  /**
+   * Private method to attach an operation to a source for fractal cache.
+   * Internal helper for creating FractalCacheIntentBuilders.
+   */
+  private attachFractalCache<
+    TTag extends string,
+    KSource extends IntentSource<TConfig, TUnits>
+  >(tag: TTag extends UnitKeys<TUnits> ? never : TTag, sourceKey: KSource, config: TConfig): FractalCacheIntentBuilder<TConfig, TUnits, TTag, KSource, ExtractIntentSource<TConfig, TUnits, KSource>> {
+    return new FractalCacheIntentBuilder(sourceKey, tag, this.units, config);
   }
 }

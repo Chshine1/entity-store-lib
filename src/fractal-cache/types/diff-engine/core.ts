@@ -6,7 +6,7 @@ import type {
   IDiffEngine
 } from "@/fractal-cache/types/diff-engine/types.ts";
 import type {IQueryBindingStore} from "@/fractal-cache/types/query-binding-store.ts";
-import type {Intent} from "@/fractal-cache/types/intent-parser.ts";
+import type {NormalizedIntent} from "@/fractal-cache/types/intent-parser.ts";
 import type {INormalizedEntityPool} from "@/fractal-cache/types/normalized-entity-pool.ts";
 
 /**
@@ -36,7 +36,7 @@ export class DiffEngine implements IDiffEngine {
    * @param intent - The intent specifying what data to fetch
    * @returns A fetch plan containing all necessary requests
    */
-  computeFetchPlan(intent: Intent): FetchPlan {
+  computeFetchPlan(intent: NormalizedIntent): FetchPlan {
     const context: FetchContext = {
       intent,
       entityPool: this.entityPool,

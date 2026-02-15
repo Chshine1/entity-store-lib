@@ -25,7 +25,7 @@ export type Operation<
   KSource extends IntentSource<TConfig, TUnits>
 > =
   | WhereOperation<TConfig, TUnits, KSource, any, any>
-  | OrderByOperation<TConfig, TUnits, KSource, any>
+  | OrderByOperation<any, any>
   | SkipOperation
   | TakeOperation
   | SelectOperation<any, any>

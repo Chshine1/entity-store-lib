@@ -1,5 +1,5 @@
 import type {PaginationRequestStrategy} from "@/fractal-cache/types/diff-engine/strategy/pagination.ts";
-import type {Intent} from "@/fractal-cache/types/intent-parser.ts";
+import type {NormalizedIntent} from "@/fractal-cache/types/intent-parser.ts";
 import type {DataRequest} from "@/fractal-cache/types/diff-engine";
 
 /**
@@ -44,7 +44,7 @@ export class DefaultPaginationRequestStrategy implements PaginationRequestStrate
    */
   generateRequests(
     missingIntervals: Array<[number, number]>,
-    intent: Intent,
+    intent: NormalizedIntent,
   ): DataRequest[] {
     if (missingIntervals.length === 0) {
       return [];
