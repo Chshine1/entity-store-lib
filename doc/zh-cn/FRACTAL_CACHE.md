@@ -232,178 +232,828 @@ interface RelationIntent extends Intent {
 
 ## 4. 差分引擎模块（DiffEngine）
 
-### 4.1 算法总流程（伪代码）
+DiffEngine 是核心组件，它协调不同的策略来计算获取计划。引擎遵循固定的工作流程：
+
+1. 水平检查 → 获取目标窗口中的缓存 ID 和缺失区间
+2. 垂直检查 → 检查缓存实体的字段完整性
+3. 生成分页请求 → 针对缺失区间
+4. 生成字段补全请求 → 针对缺失字段
+5. 生成关系请求 → 针对包含的关系
+6. 去重和合并 → 合并相似请求
+
+实际实现使用可配置的策略模式：
 
 ```typescript
-function computeFetchPlan(intent: Intent): FetchPlan {
-  // 1. 水平检查：确定缺失的 ID 区间
-  const horizontalMiss = checkHorizontal(intent);
+export class DiffEngine implements IDiffEngine {
+  private readonly config: DiffEngineConfig;
+  private readonly entityPool: INormalizedEntityPool;
+  private readonly bindingStore: IQueryBindingStore;
   
-  // 2. 若完全命中（无水平缺失且字段完整），返回空 Plan
-  // 3. 生成主获取请求（用于补充 ID）
-  const primaryFetch = horizontalMiss.needIdFetch
-    ? buildPrimaryRequest(intent, horizontalMiss.missingIntervals)
-    : null;
+  constructor(config: DiffEngineConfig, entityPool: INormalizedEntityPool, bindingStore: IQueryBindingStore) {
+    this.config = config;
+    this.entityPool = entityPool;
+    this.bindingStore = bindingStore;
+  }
   
-  // 4. 垂直检查：对窗口内所有 ID（含缓存+即将获取）检查字段缺失
-  const fieldMissingMap = checkVertical(intent, horizontalMiss.windowIds);
-  
-  // 5. 生成富化获取请求（用于补充字段）
-  const enrichmentFetches = buildEnrichmentRequests(fieldMissingMap);
-  
-  // 6. 递归处理 include 关系（见第7节）
-  const relationFetches = processIncludes(intent, horizontalMiss.windowIds);
-  
-  return new FetchPlan(primaryFetch, enrichmentFetches, relationFetches);
+  computeFetchPlan(intent: Intent): FetchPlan {
+    const context: FetchContext = {
+      intent,
+      entityPool: this.entityPool,
+      bindingStore: this.bindingStore,
+      utils: {
+        computeDefinitionId,
+        computeParamHash,
+        extractTemplate,
+        extractParams,
+      }
+    };
+    
+    // 步骤 1: 水平检查
+    const horizontalResult = this.config.horizontalCheck.check(intent, this.bindingStore);
+    
+    // 从窗口中获取缓存的实体 ID（非空值）
+    const cachedIds = horizontalResult.windowIds.filter(id => id !== null) as string[];
+    
+    // 步骤 2: 垂直检查
+    const missingMap = this.config.verticalCheck.check(
+      intent.entityType,
+      cachedIds,
+      intent.select || new Set(),
+      this.entityPool
+    );
+    
+    // 步骤 3: 生成分页请求
+    const paginationRequests = this.config.paginationRequest.generateRequests(
+      horizontalResult.missingIntervals,
+      intent,
+      context
+    );
+    
+    // 步骤 4: 生成字段补全请求
+    const fieldRequests = this.config.fieldFetch.generateRequests(
+      missingMap,
+      intent.entityType,
+      context
+    );
+    
+    // 步骤 5: 生成关系请求
+    let relationRequests: DataRequest[] = [];
+    if (intent.include) {
+      for (const rel of intent.include) {
+        const relReqs = this.config.relationRequest.generateRequests(
+          rel,
+          cachedIds,
+          this.entityPool,
+          context
+        );
+        relationRequests.push(...relReqs);
+      }
+    }
+    
+    // 步骤 6: 去重和合并
+    let allRequests = [...paginationRequests, ...fieldRequests, ...relationRequests];
+    if (this.config.requestDeduplication) {
+      allRequests = this.config.requestDeduplication.deduplicate(allRequests);
+    }
+    
+    return {requests: allRequests};
+  }
 }
 ```
 
-### 4.2 水平检查：`checkHorizontal` 详细逻辑（解决原不明确点1、3）
+### 4.1 接口定义
 
-**输入**：Intent（含 `where`, `orderBy`, `skip`, `take`）
-**输出**：
-
-- `windowIds`: 已缓存在窗口内的 ID 列表（顺序正确）
-- `missingIntervals`: 需从服务器获取的索引区间
-- `needIdFetch`: 是否需要执行主获取
+DiffEngine 使用策略模式，具有可插拔的组件：
 
 ```typescript
-function checkHorizontal(intent): HorizontalResult {
-  const {sortHash, filterHash} = normalize(intent);
-  const segment = QSS.findSegment(sortHash, filterHash);
+/**
+ * 缓存引擎的核心接口。
+ * 将 Intent 与当前缓存（NEP + QBS）进行比较，并生成最小的 FetchPlan。
+ */
+export interface IDiffEngine {
+  computeFetchPlan(intent: Intent): FetchPlan;
+}
+
+/**
+ * DiffEngine 的配置。
+ * 它包含控制差异计算行为的所有可插拔策略实例。
+ */
+export interface DiffEngineConfig {
+  /**
+   * 水平检查策略：确定目标窗口中哪些索引有缓存的实体 ID
+   * 以及哪些区间缺失。
+   */
+  horizontalCheck: HorizontalCheckStrategy;
   
-  // 情况1：无完全匹配的片段 → 全量缺失
-  if (!segment) {
+  /**
+   * 垂直检查策略：检查实体 ID 列表中缺少哪些字段。
+   */
+  verticalCheck: VerticalCheckStrategy;
+  
+  /**
+   * 基于字段缺失映射生成字段获取请求的策略。
+   */
+  fieldFetch: FieldFetchStrategy;
+  
+  /**
+   * 基于缺失区间生成分页请求的策略。
+   */
+  paginationRequest: PaginationRequestStrategy;
+  
+  /**
+   * 为给定关系意图和父 ID 生成关系（嵌套）请求的策略。
+   */
+  relationRequest: RelationRequestStrategy;
+  
+  /**
+   * 用于去重和合并生成请求的可选策略。
+   * 如果未提供，则不执行去重。
+   */
+  requestDeduplication?: RequestDeduplicationStrategy;
+}
+```
+
+### 4.2 上下文对象
+
+策略接收一个上下文对象，其中包含原始意图和实用函数：
+
+```typescript
+/**
+ * 在获取计划计算期间传递给策略的上下文对象。
+ * 它提供对存储、原始意图和实用函数的访问。
+ */
+export interface FetchContext {
+  /**
+   * 正在为其计算获取计划的原始意图。
+   */
+  intent: Intent;
+  
+  /**
+   * 用于访问缓存实体记录的实体池。
+   */
+  entityPool: INormalizedEntityPool;
+  
+  /**
+   * 用于访问缓存列表查询结果的查询绑定存储。
+   */
+  bindingStore: IQueryBindingStore;
+  
+  /**
+   * 用于哈希和提取查询模板/参数的实用函数。
+   */
+  utils: {
+    /**
+     * 基于实体类型、orderBy 和 where 条件模板计算定义 ID。
+     * @param entityType - 实体类型名称。
+     * @param orderBy - 排序规范数组。
+     * @param whereTemplate - where 条件的模板部分（带参数占位符）。
+     * @returns 唯一标识查询形状的字符串。
+     */
+    computeDefinitionId: (entityType: string, orderBy: OrderSpec[], whereTemplate: any) => string;
+    
+    /**
+     * 计算 where 条件参数值的哈希。
+     * @param params - 提取的参数值。
+     * @returns 字符串哈希。
+     */
+    computeParamHash: (params: any) => string;
+    
+    /**
+     * 从完整的 where 条件对象中提取模板部分。
+     * 模板用占位符替换实际参数值。
+     * @param where - 完整的 where 条件。
+     * @returns 模板对象。
+     */
+    extractTemplate: (where: any) => any;
+    
+    /**
+     * 从完整的 where 条件对象中提取参数值。
+     * @param where - 完整的 where 条件。
+     * @returns 包含所有参数值的对象。
+     */
+    extractParams: (where: any) => any;
+  };
+}
+```
+
+### 4.3 策略接口
+
+#### 4.3.1 水平检查策略
+
+```typescript
+/**
+ * 水平检查（ID 级别缓存分析）的策略接口。
+ * 确定目标窗口 [skip, skip+take) 中哪些索引有缓存的实体 ID
+ * 以及哪些区间缺失。
+ */
+export interface HorizontalCheckStrategy {
+  /**
+   * 执行水平检查以确定缓存的实体 ID 和缺失区间。
+   * @param intent - 指定目标窗口和查询参数的意图
+   * @param bindingStore - 包含缓存列表查询结果的查询绑定存储
+   * @returns 包含缓存 ID、缺失区间和获取标志的 HorizontalResult
+   */
+  check(intent: Intent, bindingStore: IQueryBindingStore): HorizontalResult;
+}
+
+/**
+ * 水平检查（ID 级别缓存分析）的结果。
+ */
+export interface HorizontalResult {
+  /** 请求窗口中已在缓存中的 ID，按正确顺序；缺失位置 = null */
+  windowIds: Array<string | null>;
+  /** 尚未缓存且需要从服务器获取的索引区间 */
+  missingIntervals: Array<[number, number]>;
+  /** 是否需要主获取（分页请求） */
+  needIdFetch: boolean;
+}
+```
+
+默认实现包含配置选项：
+
+```typescript
+interface HorizontalCheckConfig {
+  /**
+   * 是否使用缓存。如果为 false，则始终返回缺失区间。
+   */
+  useCache: boolean;
+  /**
+   * 是否允许部分缓存（非连续区间）。如果为 false，
+   * 将任何缺失区间视为完全窗口缺失。
+   */
+  allowPartialCache: boolean;
+  /**
+   * 将缺失区间合并为一个区间的最大间隙。
+   * 默认为 0（不合并）。
+   */
+  maxIntervalMergeGap: number;
+}
+
+export class DefaultHorizontalCheck implements HorizontalCheckStrategy {
+  private readonly config: HorizontalCheckConfig;
+  
+  constructor(config: HorizontalCheckConfig) {
+    this.config = config;
+  }
+  
+  check(intent: Intent): HorizontalResult {
+    // 如果禁用缓存，返回完整缺失区间
+    if (!this.config.useCache) {
+      return {
+        windowIds: Array(intent.take).fill(null),
+        missingIntervals: [[intent.skip, intent.skip + intent.take - 1]],
+        needIdFetch: true
+      };
+    }
+    
+    // 对于现在，返回基本实现，假设没有缓存
+    // 这将在 QueryBinding 结构完全实现后扩展
     return {
-      windowIds: [],
+      windowIds: Array(intent.take).fill(null),
       missingIntervals: [[intent.skip, intent.skip + intent.take - 1]],
       needIdFetch: true
     };
   }
+}
+```
+
+#### 4.3.2 垂直检查策略
+
+```typescript
+/**
+ * 垂直检查（字段级别缓存分析）的策略接口。
+ * 检查实体 ID 列表中缺少哪些字段。
+ */
+export interface VerticalCheckStrategy {
+  /**
+   * 执行垂直检查以确定给定实体 ID 的缺失字段。
+   * @param entityType - 正在检查的实体类型
+   * @param ids - 要检查的实体 ID 列表
+   * @param requiredFields - 必需的字段集
+   * @param entityPool - 包含缓存实体记录的实体池
+   * @returns 将实体 ID 映射到缺失字段集的 FieldMissingMap
+   */
+  check(
+    entityType: string,
+    ids: string[],
+    requiredFields: Set<string>,
+    entityPool: INormalizedEntityPool
+  ): FieldMissingMap;
+}
+
+/**
+ * 实体 ID 到这些实体缺失字段集的映射。
+ * 垂直检查策略使用它来报告每个实体 ID 的缺失字段。
+ */
+export type FieldMissingMap = Map<string, Set<string>>;
+```
+
+默认实现：
+
+```typescript
+interface VerticalCheckConfig {
+  /**
+   * 是否使用实体上存储的全局字段掩码。
+   */
+  useGlobalFieldMask: boolean;
+  /**
+   * 字段掩码来源：来自实体记录或查询形状。
+   */
+  fieldMaskSource: 'entity' | 'query';
+  /**
+   * 处理缺失实体的策略：'strict' 将所有字段视为缺失，
+   * 'relaxed' 忽略缺失实体。
+   */
+  requiredFieldsPolicy: 'strict' | 'relaxed';
+}
+
+export class DefaultVerticalCheck implements VerticalCheckStrategy {
+  private readonly config: VerticalCheckConfig;
   
-  // 情况2：有匹配片段
-  const cachedIds = getIdsInWindow(segment, intent.skip, intent.take);
-  const missing = computeMissingIntervals(segment.intervals, intent.skip, intent.take);
-  
-  // 若片段已 exhausted，则所有窗口内的 ID 均已缓存，可直接返回
-  if (segment.isExhausted) {
-    return {
-      windowIds: cachedIds,  // 全部从缓存中取得
-      missingIntervals: [],
-      needIdFetch: false
-    };
+  constructor(config: VerticalCheckConfig) {
+    this.config = config;
   }
   
-  // 未 exhausted：需补充缺失区间
-  return {
-    windowIds: cachedIds,
-    missingIntervals: missing,
-    needIdFetch: missing.length > 0
+  check(
+    entityType: string,
+    ids: string[],
+    requiredFields: Set<string>,
+    entityPool: INormalizedEntityPool
+  ): FieldMissingMap {
+    const missingMap = new Map<string, Set<string>>();
+    
+    for (const id of ids) {
+      const record = entityPool.getRecord(entityType, id);
+      
+      if (!record) {
+        // 实体在池中不存在
+        if (this.config.requiredFieldsPolicy === 'strict') {
+          missingMap.set(id, new Set(requiredFields));
+        }
+        // 如果是 'relaxed'，跳过此实体
+        continue;
+      }
+      
+      // 基于字段掩码计算缺失字段
+      const missing = new Set<string>();
+      for (const field of requiredFields) {
+        if (!record.fieldMask.has(field as keyof typeof record.data)) {
+          missing.add(field);
+        }
+      }
+      
+      if (missing.size > 0) {
+        missingMap.set(id, missing);
+      }
+    }
+    
+    return missingMap;
+  }
+}
+```
+
+#### 4.3.3 字段获取策略
+
+```typescript
+/**
+ * 生成字段补全请求的策略接口。
+ * 生成 DataRequest 对象以获取实体的缺失字段。
+ */
+export interface FieldFetchStrategy {
+  /**
+   * 基于字段缺失映射生成字段补全请求。
+   * @param missingMap - 实体 ID 到缺失字段集的映射
+   * @param entityType - 需要字段补全的实体类型
+   * @param context - 包含意图和实用函数的获取上下文
+   * @returns 字段补全的 DataRequest 对象数组
+   */
+  generateRequests(
+    missingMap: FieldMissingMap,
+    entityType: string,
+    context: FetchContext
+  ): DataRequest[];
+}
+```
+
+默认实现带有配置：
+
+```typescript
+interface FieldFetchConfig {
+  /**
+   * 确定批量字段的阈值。在超过此比例的实体中缺失的字段
+   * 将被分组到批量请求中。
+   */
+  batchThreshold: number;
+  /**
+   * 单个批量请求中的最大 ID 数量。
+   */
+  maxBatchSize: number;
+  /**
+   * 处理低频字段的策略：'per-entity' 为每个实体创建单独请求
+   * 'merge-all' 将所有低频字段合并到一个请求中。
+   */
+  lowFrequencyStrategy: 'per-entity' | 'merge-all';
+  /**
+   * 是否优先使用基于 ID 的请求进行字段补全。
+   */
+  preferIdRequest: boolean;
+}
+
+export class DefaultFieldFetchStrategy implements FieldFetchStrategy {
+  private readonly config: FieldFetchConfig;
+  
+  constructor(config: FieldFetchConfig) {
+    this.config = config;
+  }
+  
+  generateRequests(
+    missingMap: FieldMissingMap,
+    entityType: string,
+    context: FetchContext
+  ): DataRequest[] {
+    if (missingMap.size === 0) {
+      return [];
+    }
+    
+    // 计算每个字段缺失多少实体
+    const fieldCount = new Map<string, number>();
+    for (const [, fields] of missingMap) {
+      for (const field of fields) {
+        fieldCount.set(field, (fieldCount.get(field) || 0) + 1);
+      }
+    }
+    
+    // 基于阈值确定批量字段
+    const bulkFields = new Set<string>();
+    const totalEntities = missingMap.size;
+    
+    for (const [field, count] of fieldCount) {
+      if (count / totalEntities >= this.config.batchThreshold) {
+        bulkFields.add(field);
+      }
+    }
+    
+    const requests: DataRequest[] = [];
+    
+    // 为高频字段生成批量请求
+    if (bulkFields.size > 0) {
+      // 按缺失的批量字段对实体进行分组
+      const bulkFieldGroups = new Map<string, string[]>();
+      
+      for (const [id, fields] of missingMap) {
+        const bulkFieldsForEntity = [...fields].filter(f => bulkFields.has(f)).join(',');
+        if (bulkFieldsForEntity) {
+          if (!bulkFieldGroups.has(bulkFieldsForEntity)) {
+            bulkFieldGroups.set(bulkFieldsForEntity, []);
+          }
+          bulkFieldGroups.get(bulkFieldsForEntity)!.push(id);
+        }
+      }
+      
+      // 为每组创建请求
+      for (const [fieldsStr, ids] of bulkFieldGroups) {
+        const fields = fieldsStr.split(',') as string[];
+        
+        // 如需要，按批次分割
+        for (let i = 0; i < ids.length; i += this.config.maxBatchSize) {
+          const batch = ids.slice(i, i + this.config.maxBatchSize);
+          
+          const request: DataRequest = {
+            entityType,
+            mode: {type: 'id', ids: batch},
+            where: context.intent.where,
+            orderBy: context.intent.orderBy,
+            select: new Set(fields)
+          };
+          
+          requests.push(request);
+        }
+      }
+    }
+    
+    // 基于策略处理剩余（低频）字段
+    if (this.config.lowFrequencyStrategy === 'per-entity') {
+      // 为每个实体及其低频字段创建单独请求
+      for (const [id, fields] of missingMap) {
+        const lowFreqFields = [...fields].filter(f => !bulkFields.has(f));
+        if (lowFreqFields.length > 0) {
+          const request: DataRequest = {
+            entityType,
+            mode: {type: 'id', ids: [id]},
+            where: context.intent.where,
+            orderBy: context.intent.orderBy,
+            select: new Set(lowFreqFields)
+          };
+          
+          requests.push(request);
+        }
+      }
+    } else if (this.config.lowFrequencyStrategy === 'merge-all') {
+      // 收集所有低频字段和需要它们的实体
+      const allLowFreqFields = new Set<string>();
+      const allLowFreqEntityIds = new Set<string>();
+      
+      for (const [id, fields] of missingMap) {
+        const lowFreqFields = [...fields].filter(f => !bulkFields.has(f));
+        if (lowFreqFields.length > 0) {
+          lowFreqFields.forEach(f => allLowFreqFields.add(f));
+          allLowFreqEntityIds.add(id);
+        }
+      }
+      
+      if (allLowFreqFields.size > 0 && allLowFreqEntityIds.size > 0) {
+        const entityIds = Array.from(allLowFreqEntityIds);
+        
+        // 如需要，按批次分割
+        for (let i = 0; i < entityIds.length; i += this.config.maxBatchSize) {
+          const batch = entityIds.slice(i, i + this.config.maxBatchSize);
+          
+          const request: DataRequest = {
+            entityType,
+            mode: {type: 'id', ids: batch},
+            where: context.intent.where,
+            orderBy: context.intent.orderBy,
+            select: allLowFreqFields
+          };
+          
+          requests.push(request);
+        }
+      }
+    }
+    
+    return requests;
+  }
+}
+```
+
+#### 4.3.4 分页请求策略
+
+```typescript
+/**
+ * 生成分页请求的策略接口。
+ * 创建 DataRequest 对象以获取分页列表中的缺失区间。
+ */
+export interface PaginationRequestStrategy {
+  /**
+   * 为给定的缺失区间生成分页请求。
+   * @param missingIntervals - 需要获取的 [start, end] 区间数组
+   * @param intent - 查询的原始意图
+   * @param context - 包含意图和实用函数的获取上下文
+   * @returns 分页的 DataRequest 对象数组
+   */
+  generateRequests(
+    missingIntervals: Array<[number, number]>,
+    intent: Intent,
+    context: FetchContext
+  ): DataRequest[];
+}
+```
+
+默认实现：
+
+```typescript
+interface PaginationRequestConfig {
+  /**
+   * 合并区间策略：'none' 保持全部分离，'adjacent' 合并接触的区间，
+   * 'all' 将全部合并为一个请求。
+   */
+  intervalMergeStrategy: 'none' | 'adjacent' | 'all';
+  /**
+   * 是否允许获取超出请求窗口边界的项目。
+   */
+  allowOverfetch: boolean;
+  /**
+   * 单个分页请求中获取的最大项目数量。
+   */
+  maxTakePerRequest: number;
+}
+
+export class DefaultPaginationRequestStrategy implements PaginationRequestStrategy {
+  private readonly config: PaginationRequestConfig;
+  
+  constructor(config: PaginationRequestConfig) {
+    this.config = config;
+  }
+  
+  generateRequests(
+    missingIntervals: Array<[number, number]>,
+    intent: Intent,
+    context: FetchContext
+  ): DataRequest[] {
+    if (missingIntervals.length === 0) {
+      return [];
+    }
+    
+    // 应用区间合并策略
+    let processedIntervals: Array<[number, number]> = [...missingIntervals];
+    
+    switch (this.config.intervalMergeStrategy) {
+      case 'adjacent':
+        processedIntervals = this.mergeAdjacentIntervals(processedIntervals);
+        break;
+      case 'all':
+        if (processedIntervals.length > 0) {
+          const minStart = Math.min(...processedIntervals.map(interval => interval[0]));
+          const maxEnd = Math.max(...processedIntervals.map(interval => interval[1]));
+          processedIntervals = [[minStart, maxEnd]];
+        }
+        break;
+      case 'none':
+        // 不合并
+        break;
+    }
+    
+    // 如果不允许过度获取，则应用窗口裁剪
+    if (!this.config.allowOverfetch) {
+      const windowStart = intent.skip;
+      const windowEnd = intent.skip + intent.take - 1;
+      
+      const filteredIntervals: Array<[number, number]> = [];
+      for (const [start, end] of processedIntervals) {
+        const newStart = Math.max(start, windowStart);
+        const newEnd = Math.min(end, windowEnd);
+        if (newStart <= newEnd) {
+          filteredIntervals.push([newStart, newEnd]);
+        }
+      }
+      processedIntervals = filteredIntervals;
+    }
+    
+    const requests: DataRequest[] = [];
+    
+    // 如果区间超过 maxTakePerRequest，则分割区间
+    for (const [start, end] of processedIntervals) {
+      const intervalLength = end - start + 1;
+      
+      if (intervalLength <= this.config.maxTakePerRequest) {
+        // 此区间的单个请求
+        const request: DataRequest = {
+          entityType: intent.entityType,
+          mode: {type: 'pagination', skip: start, take: intervalLength},
+          where: intent.where,
+          orderBy: intent.orderBy,
+          ...(intent.select && {select: intent.select})
+        };
+        
+        requests.push(request);
+      } else {
+        // 将区间分割为多个请求
+        let currentStart = start;
+        while (currentStart <= end) {
+          const currentTake = Math.min(this.config.maxTakePerRequest, end - currentStart + 1);
+          
+          const request: DataRequest = {
+            entityType: intent.entityType,
+            mode: {type: 'pagination', skip: currentStart, take: currentTake},
+            where: intent.where,
+            orderBy: intent.orderBy,
+            ...(intent.select && {select: intent.select})
+          };
+          
+          requests.push(request);
+          
+          currentStart += currentTake;
+        }
+      }
+    }
+    
+    return requests;
+  }
+  
+  /**
+   * 合并相邻区间以减少请求数量。
+   * @param intervals - 要合并的 [start, end] 区间数组
+   * @returns 合并的 [start, end] 区间数组
+   * @private
+   */
+  private mergeAdjacentIntervals(intervals: Array<[number, number]>): Array<[number, number]> {
+    if (intervals.length <= 1) return intervals;
+    
+    // 按开始位置对区间排序
+    const sorted = [...intervals].sort((a, b) => a[0] - b[0]);
+    const merged: Array<[number, number]> = [];
+    
+    if (sorted.length === 0) return merged;
+    
+    let currentStart = sorted[0][0];
+    let currentEnd = sorted[0][1];
+    
+    for (let i = 1; i < sorted.length; i++) {
+      const [nextStart, nextEnd] = sorted[i];
+      
+      // 如果区间相邻或重叠，则合并它们
+      if (nextStart <= currentEnd + 1) {
+        currentEnd = Math.max(currentEnd, nextEnd);
+      } else {
+        // 添加当前区间并开始新区间
+        merged.push([currentStart, currentEnd]);
+        currentStart = nextStart;
+        currentEnd = nextEnd;
+      }
+    }
+    
+    // 添加最后区间
+    merged.push([currentStart, currentEnd]);
+    
+    return merged;
+  }
+}
+```
+
+#### 4.3.5 关系请求策略
+
+```typescript
+/**
+ * 生成关系（嵌套）请求的策略接口。
+ * 处理为 include 子句中指定的父实体获取相关实体。
+ */
+export interface RelationRequestStrategy {
+  /**
+   * 为给定关系意图和父 ID 生成关系请求。
+   * @param relationIntent - 指定关系查询的意图
+   * @param parentIds - 需要获取其关系的父实体 ID 列表
+   * @param entityPool - 用于访问缓存实体记录的实体池
+   * @param context - 包含意图和实用函数的获取上下文
+   * @returns 关系获取的 DataRequest 对象数组
+   */
+  generateRequests(
+    relationIntent: RelationIntent,
+    parentIds: string[],
+    entityPool: INormalizedEntityPool,
+    context: FetchContext
+  ): DataRequest[];
+}
+```
+
+#### 4.3.6 请求去重策略
+
+```typescript
+/**
+ * 请求去重和合并的策略接口。
+ * 减少重复请求并合并相似请求以最小化网络调用。
+ */
+export interface RequestDeduplicationStrategy {
+  /**
+   * 删除重复请求并在可能的情况下合并相似请求。
+   * @param requests - 要去重的 DataRequest 对象数组
+   * @returns 具有合并相似请求的唯一 DataRequest 对象数组
+   */
+  deduplicate(requests: DataRequest[]): DataRequest[];
+}
+```
+
+### 4.4 数据请求格式
+
+所有策略生成标准化的 DataRequest 对象：
+
+```typescript
+/**
+ * DataRequest 的模式 - 要么按具体 ID 获取，要么获取分页切片。
+ */
+export type DataRequestMode =
+  | { type: "id"; ids: string[] }          // 获取给定 ID 的完整实体
+  | { type: "pagination"; skip: number; take: number }; // 获取排序/过滤列表的切片
+
+/**
+ * 统一的请求描述符。
+ * 它可以用来：
+ * - 获取分页 ID 列表（分页模式）
+ * - 获取给定 ID 的完整实体（ID 模式）
+ * 在两种情况下，后端**应该**返回所请求字段的完整实体数据。
+ */
+export interface DataRequest {
+  entityType: string;
+  mode: DataRequestMode;
+  
+  /** 过滤条件 - 即使对于 ID 模式也是必需的（由后端用于应用安全/一致性） */
+  where: FilterAST;
+  /** 排序 - 对于分页模式是必需的，对于 ID 模式是可选的（但为了保持一致性而保留） */
+  orderBy: OrderSpec[];
+  
+  /** 要检索的字段；如果省略，后端应返回所有字段 */
+  select?: Set<string>;
+  
+  /**
+   * Reconciler 的额外上下文。
+   * 对于关系请求，我们需要知道如何将获取的子 ID 附加到每个父项。
+   */
+  metadata?: {
+    parentBatch?: Array<{
+      parentId: string;
+      paramHash: string;       // 关系参数的哈希（包括 parentId）
+      originalSkip: number;    // 此父项请求的原始 skip
+      originalTake: number;    // 此父项请求的原始 take
+    }>;
   };
 }
 
-// 辅助函数：从 intervals 和 indexToId 获取指定窗口内的 ID（顺序保持）
-function getIdsInWindow(segment, skip, take): ID[] {
-  const ids: ID[] = [];
-  for (let i = skip; i < skip + take; i++) {
-    if (segment.indexToId.has(i)) {
-      ids.push(segment.indexToId.get(i));
-    } else {
-      ids.push(null); // 占位，表示缺失
-    }
-  }
-  return ids;
+/**
+ * 包含零个或多个独立请求的计划，由 NetworkAdapter 执行。
+ */
+export interface FetchPlan {
+  requests: DataRequest[];
 }
 ```
-
-**解决不明确点**：
-
-- **FilterHash 的用途**：在 QSS 中，`(sortHash, filterHash)` 作为复合主键，每个不同的过滤条件（即使排序相同）都对应独立的
-  QuerySegment。这避免了不同谓词的片段混淆。
-- **谓词拆分的位置**：水平检查**仅负责索引区间缺失**，谓词拆分（即 `PD AND NOT PC`）是在**构建主获取请求**时由
-  `buildPrimaryRequest` 根据缓存片段的 `predicate` 生成，不混入水平检查逻辑。
-
-### 4.3 谓词拆分请求构建（解决原不明确点2）
-
-```typescript
-function buildPrimaryRequest(intent, missingIntervals): PrimaryFetch {
-  const segment = QSS.findSegment(sortHash, filterHash); // 可能为 null
-  let whereClause = intent.where;
-  
-  // 若存在缓存片段且其谓词不是意图谓词的超集，则需取逻辑差集
-  if (segment && !isSuperset(segment.predicate, intent.where)) {
-    // 构造： (PD AND NOT PC) OR (PD AND skip > 最大缓存索引)
-    const notPC = {$not: segment.predicate};
-    const part1 = {$and: [intent.where, notPC]};
-    
-    const maxCachedIndex = Math.max(...segment.intervals.flat());
-    const part2 = {
-      $and: [
-        intent.where,
-        {$gt: ['$index', maxCachedIndex]} // 伪代码，实际需翻译成后端支持的语法
-      ]
-    };
-    
-    whereClause = {$or: [part1, part2]};
-  }
-  
-  return {
-    type: 'primary',
-    where: whereClause,
-    orderBy: intent.orderBy,
-    skip: missingIntervals[0][0], // 简化：取第一个缺失区间的起始
-    take: sumLength(missingIntervals) // 总长度
-  };
-}
-```
-
-**边界处理**：当 `missingIntervals` 包含多个不连续区间时，需拆分多个请求还是合并成一个请求？框架提供策略配置（默认合并，利用服务端支持
-`OR` 或 `IN` 索引）。
-
-### 4.4 垂直检查：字段级缺失（解决原不明确点5）
-
-```typescript
-function checkVertical(intent, windowIds): Map<ID, Set<keyof T>> {
-  const missingMap = new Map();
-  
-  for (const id of windowIds) {
-    if (!id) continue; // 缺失的 ID，将在主获取后补全字段
-    const record = NEP.getRecord(intent.entityType, id);
-    if (!record) {
-      // 理论上不应发生，因为 ID 来自 QSS，QSS 保证 indexToId 中的 ID 在 NEP 存在
-      missingMap.set(id, new Set(intent.select || allFields));
-      continue;
-    }
-    const missingFields = (intent.select || allFields).filter(
-      f => !record.fieldMask.has(f)
-    );
-    if (missingFields.length) {
-      missingMap.set(id, new Set(missingFields));
-    }
-  }
-  
-  // 聚合策略：可配置阈值（如 >30% 实体缺失相同字段 → 转为批量获取）
-  const threshold = 0.3; // 可配置
-  const fieldFrequency = new Map();
-  for (const [_, fields] of missingMap) {
-    fields.forEach(f => fieldFrequency.set(f, (fieldFrequency.get(f) || 0) + 1));
-  }
-  
-  const bulkFields = new Set();
-  for (const [f, count] of fieldFrequency) {
-    if (count / windowIds.length > threshold) {
-      bulkFields.add(f);
-    }
-  }
-  
-  // 返回时，将属于批量字段的条目从 missingMap 移除，单独记录在批量请求中
-  // ... 实现略
-  
-  return missingMap; // 此时 missingMap 仅包含每个 ID 特有的缺失字段
-}
-```
-
-**阈值可配置**：通过 `CachePolicy` 模块注入。
 
 ---
 
